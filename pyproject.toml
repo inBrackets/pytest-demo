@@ -1,0 +1,34 @@
+[project]
+name = "pytest-demo"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pytest",
+    "pytest-playwright",
+    "pydantic>=2",
+    "pydantic-settings",
+    "allure-pytest",
+    "pytest-xdist[psutil]",
+    "pytest-rerunfailures",
+    "filelock",
+]
+
+[tool.pytest.ini_options]
+addopts        = "--alluredir=allure-results"
+testpaths      = ["users", "posts", "products"]
+log_cli        = true
+log_cli_level  = "INFO"
+log_file       = "logs/test.log"
+log_file_level = "DEBUG"
+markers = [
+    "smoke: critical-path tests",
+    "api: REST API tests",
+    "ui: browser UI tests",
+]
+
+[tool.uv]
+preview = true
+
+[tool.uv.scripts]
+test-parallel = "pytest -n auto"
+test-stable   = "pytest --reruns 1 --reruns-delay 2"
