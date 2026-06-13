@@ -4,6 +4,4 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
-output/allure-results/
-output/allure-report/
-output/logs/
+output/
