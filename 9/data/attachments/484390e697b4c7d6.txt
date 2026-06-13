@@ -1,0 +1,3 @@
+2026-06-13 17:21:50 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-13 17:21:59 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-13 17:21:59 DEBUG    ae_account.api.ae_account_client: ← 403

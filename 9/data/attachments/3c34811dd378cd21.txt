@@ -1,0 +1,2 @@
+2026-06-13 17:20:56 DEBUG    ae_account.api.ae_account_client: GET https://automationexercise.com/api/getUserDetailByEmail
+2026-06-13 17:20:57 DEBUG    ae_account.api.ae_account_client: ← 403
