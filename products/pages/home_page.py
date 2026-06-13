@@ -88,11 +88,12 @@ class HomePage(BasePage):
     @allure.step("Scroll to bottom of page")
     def scroll_to_bottom(self) -> None:
         self._page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        self._page.wait_for_load_state("networkidle")
+        expect(self._subscribe_email).to_be_visible()
 
     @allure.step("Click scroll-up arrow button")
     def click_scroll_up_arrow(self) -> None:
         self._scroll_up_arrow.click()
+        expect(self._hero_heading).to_be_visible()
 
     @allure.step("Scroll to top of page")
     def scroll_to_top(self) -> None:

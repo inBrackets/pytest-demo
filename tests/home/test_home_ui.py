@@ -24,7 +24,6 @@ class TestScrollUpWithArrow:
         home_page.scroll_to_bottom()
         expect(home_page._page.locator("input#susbscribe_email")).to_be_visible()
         home_page.click_scroll_up_arrow()
-        home_page._page.wait_for_load_state("networkidle")
         hero_text = home_page.get_hero_text()
         assert hero_text
 
