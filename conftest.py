@@ -1,5 +1,7 @@
 import os
+import uuid
 from pathlib import Path
+from typing import Generator
 
 import allure
 import pytest
@@ -11,9 +13,18 @@ from users.pages.login_page import LoginPage
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    output_dir = Path(config.rootdir) / "output"
+    allure_dir = output_dir / "allure-results"
+    logs_dir = output_dir / "logs"
+    allure_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    if hasattr(config.option, "allure_report_dir"):
+        config.option.allure_report_dir = str(allure_dir)
+
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
-    if worker_id:
-        config.option.log_file = f"logs/test_{worker_id}.log"
+    log_name = f"test_{worker_id}.log" if worker_id else "test.log"
+    config.option.log_file = str(logs_dir / log_name)
 
 
 @pytest.hookimpl(wrapper=True)
@@ -76,12 +87,55 @@ def page(browser_context: BrowserContext, request: pytest.FixtureRequest) -> Pag
     pw_page = browser_context.new_page()
     yield pw_page
     if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        allure.attach(
-            pw_page.screenshot(full_page=True),
-            name="screenshot",
-            attachment_type=allure.attachment_type.PNG,
-        )
+        try:
+            allure.attach(
+                pw_page.screenshot(),
+                name="screenshot",
+                attachment_type=allure.attachment_type.PNG,
+            )
+        except Exception:
+            pass
     pw_page.close()
+
+
+@pytest.fixture
+def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, request):
+    context = browser.new_context()
+    context.set_default_timeout(settings.browser_timeout)
+    trace_zip = tmp_path / "trace.zip"
+    context.tracing.start(screenshots=True, snapshots=True)
+    pw_page = context.new_page()
+    yield pw_page
+    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
+        try:
+            allure.attach(
+                pw_page.screenshot(),
+                name="screenshot",
+                attachment_type=allure.attachment_type.PNG,
+            )
+        except Exception:
+            pass
+        context.tracing.stop(path=str(trace_zip))
+        allure.attach.file(str(trace_zip), name="trace", attachment_type=allure.attachment_type.ZIP)
+    else:
+        context.tracing.stop()
+    pw_page.close()
+    context.close()
+
+
+@pytest.fixture
+def disposable_credentials(api_context, settings) -> Generator[dict, None, None]:
+    """Generate a unique account, yield credentials, delete via API in teardown."""
+    from ae_account.api.ae_account_client import AeAccountClient
+    email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
+    creds = {"name": "Pytest User", "email": email, "password": "Test1234!"}
+    yield creds
+    try:
+        AeAccountClient(api_context, settings).delete_account(
+            email=creds["email"], password=creds["password"]
+        )
+    except Exception:
+        pass
 
 
 @pytest.fixture
@@ -95,15 +149,13 @@ def api_context(playwright, settings: Settings):
 
 
 @pytest.fixture(autouse=True)
-def attach_trace_on_failure(request: pytest.FixtureRequest) -> None:
+def attach_trace_on_failure(request: pytest.FixtureRequest, trace_path: Path) -> None:
     yield
     if not (getattr(request.node, "rep_call", None) and request.node.rep_call.failed):
         return
-    if "trace_path" in request.fixturenames:
-        tp: Path = request.getfixturevalue("trace_path")
-        if tp.exists():
-            allure.attach.file(
-                str(tp),
-                name="trace",
-                attachment_type=allure.attachment_type.ZIP,
-            )
+    if trace_path.exists():
+        allure.attach.file(
+            str(trace_path),
+            name="trace",
+            attachment_type=allure.attachment_type.ZIP,
+        )

@@ -14,21 +14,23 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-addopts        = "--alluredir=allure-results"
-testpaths      = ["users", "posts", "products"]
+addopts        = ""
+testpaths      = ["tests"]
+pythonpath     = ["."]
 log_cli        = true
 log_cli_level  = "INFO"
-log_file       = "logs/test.log"
 log_file_level = "DEBUG"
 markers = [
     "smoke: critical-path tests",
     "api: REST API tests",
     "ui: browser UI tests",
+    "slow: long-running end-to-end flows",
 ]
 
-[tool.uv]
-preview = true
-
-[tool.uv.scripts]
-test-parallel = "pytest -n auto"
-test-stable   = "pytest --reruns 1 --reruns-delay 2"
+# Run profiles (mutually exclusive — xdist and rerunfailures cannot be active together):
+#   parallel:  uv run pytest -n auto
+#   stable:    uv run pytest --reruns 1 --reruns-delay 2
+#
+# Allure report:
+#   serve (opens browser):  allure serve output/allure-results
+#   build static HTML:      allure generate output/allure-results --output output/allure-report --clean

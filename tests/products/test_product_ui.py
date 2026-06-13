@@ -17,8 +17,9 @@ class TestProductPage:
 
 
 @pytest.mark.ui
-class TestHomePageSearch:
-    def test_search_navigates_to_results(self, home_page: HomePage) -> None:
-        home_page.navigate()
-        home_page.search("Blue Top")
-        assert "search" in home_page._page.url
+class TestProductSearch:
+    def test_search_returns_results(self, product_page: ProductPage) -> None:
+        product_page.navigate()
+        product_page.search("Blue Top")
+        names = product_page.get_product_names()
+        assert len(names) > 0

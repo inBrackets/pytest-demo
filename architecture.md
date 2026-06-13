@@ -247,34 +247,58 @@ BasePage (ABC)
         subclass calls expect(locator).to_be_visible() on a stable landmark element.
         Playwright's built-in retry+timeout handles the wait — do not use time.sleep().
         Raises AssertionError/TimeoutError if the element never appears; navigate() propagates it.
+```
 
+#### Locator fields — mandatory convention
+
+Every locator used by a page object **must be declared as a `@property` on the class**, not
+constructed inline inside the method that uses it. This keeps selectors in one place,
+makes them reusable across methods, and makes selector changes a one-line edit.
+
+```python
 class LoginPage(BasePage):
     @property
     def url(self) -> str:
         return f"{self._settings.ui_base_url}/login"
 
-    def is_loaded(self) -> None:
-        expect(self._page.locator("input[name='email']")).to_be_visible()
-
-    def login(self, username: str, password: str) -> None: ...
-    # All login selectors live here; no raw page.fill() calls outside this class
-
-class HomePage(BasePage):
+    # Locators — one @property per distinct element
     @property
-    def url(self) -> str:
-        return self._settings.ui_base_url
+    def _login_email(self):
+        return self._page.locator("input[data-qa='login-email']")
 
-    def is_loaded(self) -> None:
-        expect(self._page.locator("h2", has_text="Features Items")).to_be_visible()
-
-class ProductPage(BasePage):
     @property
-    def url(self) -> str:
-        return f"{self._settings.ui_base_url}/products"
+    def _login_password(self):
+        return self._page.locator("input[data-qa='login-password']")
 
+    @property
+    def _login_button(self):
+        return self._page.locator("button[data-qa='login-button']")
+
+    @property
+    def _login_error(self):
+        return self._page.locator("p:has-text('Your email or password is incorrect!')")
+
+    # Actions — use locator properties, never re-construct the locator here
     def is_loaded(self) -> None:
-        expect(self._page.locator("h2", has_text="All Products")).to_be_visible()
+        expect(self._login_email).to_be_visible()
+
+    def login(self, username: str, password: str) -> None:
+        self._login_email.fill(username)
+        self._login_password.fill(password)
+        self._login_button.click()
+
+    def get_error_message(self) -> str:
+        return self._login_error.inner_text()
 ```
+
+Locators that depend on a method parameter (e.g. `a[href='#Men']` where "Men" is passed
+in) cannot be extracted as fixed properties — they remain inline in the method body. All
+*static* locators must be properties.
+
+Playwright `Locator` objects are lazy — they hold only the selector string and a reference
+to `_page`. Each property access constructs a new `Locator` instance; there is no DOM
+query until the locator is acted on. `@property` is therefore safe and correct: no
+memoisation is needed, and the locator reflects the current page state on every use.
 
 All page objects are substitutable where `BasePage` is expected (LSP).
 Page objects are responsible only for navigation and interaction — assertions live

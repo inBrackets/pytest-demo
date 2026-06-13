@@ -1,0 +1,45 @@
+import pytest
+
+from users.pages.login_page import LoginPage
+from users.pages.signup_page import SignupPage
+
+
+@pytest.mark.ui
+@pytest.mark.smoke
+class TestRegisterUser:
+    """TC 1 — Register User"""
+
+    def test_new_user_can_register(self, unauthenticated_page, settings, disposable_credentials) -> None:
+        login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
+        login_page.start_signup(
+            name=disposable_credentials["name"],
+            email=disposable_credentials["email"],
+        )
+        signup = SignupPage(page=unauthenticated_page, settings=settings)
+        signup.is_loaded()
+        signup.fill_account_info(password=disposable_credentials["password"])
+        signup.fill_address()
+        signup.create_account()
+
+    def test_account_created_page_shows_success(self, unauthenticated_page, settings, disposable_credentials) -> None:
+        login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
+        login_page.start_signup(
+            name=disposable_credentials["name"],
+            email=disposable_credentials["email"],
+        )
+        signup = SignupPage(page=unauthenticated_page, settings=settings)
+        signup.fill_account_info(password=disposable_credentials["password"])
+        signup.fill_address()
+        signup.create_account()
+        assert "account-created" in unauthenticated_page.url or "ACCOUNT CREATED" in unauthenticated_page.content().upper()
+
+
+@pytest.mark.ui
+class TestRegisterWithExistingEmail:
+    """TC 5 — Register User with Existing Email"""
+
+    def test_existing_email_shows_error(self, unauthenticated_page, settings) -> None:
+        login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
+        login_page.start_signup(name="Any Name", email=settings.ae_username)
+        error = login_page.get_signup_error()
+        assert "already exist" in error.lower()
