@@ -1,0 +1,2 @@
+2026-06-13 04:43:23 DEBUG    products.pages.product_page: Navigating to https://automationexercise.com/products
+2026-06-13 04:43:26 DEBUG    products.pages.product_page: Collecting product names from listing
