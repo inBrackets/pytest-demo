@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,35 +11,35 @@ class PaymentPage(BasePage):
 
     # Locators
     @property
-    def _name_on_card(self):
+    def _name_on_card(self) -> Locator:
         return self._page.locator("input[data-qa='name-on-card']")
 
     @property
-    def _card_number(self):
+    def _card_number(self) -> Locator:
         return self._page.locator("input[data-qa='card-number']")
 
     @property
-    def _cvc(self):
+    def _cvc(self) -> Locator:
         return self._page.locator("input[data-qa='cvc']")
 
     @property
-    def _expiry_month(self):
+    def _expiry_month(self) -> Locator:
         return self._page.locator("input[data-qa='expiry-month']")
 
     @property
-    def _expiry_year(self):
+    def _expiry_year(self) -> Locator:
         return self._page.locator("input[data-qa='expiry-year']")
 
     @property
-    def _pay_button(self):
+    def _pay_button(self) -> Locator:
         return self._page.locator("button[data-qa='pay-button']")
 
     @property
-    def _success_message(self):
+    def _success_message(self) -> Locator:
         return self._page.locator("p:has-text('Congratulations'), #success_message")
 
     @property
-    def _download_invoice_button(self):
+    def _download_invoice_button(self) -> Locator:
         return self._page.locator("a.btn-default:has-text('Download Invoice')")
 
     # Actions

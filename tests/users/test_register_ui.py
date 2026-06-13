@@ -1,5 +1,7 @@
 import pytest
+from playwright.sync_api import Page
 
+from core.config import Settings
 from users.pages.login_page import LoginPage
 from users.pages.signup_page import SignupPage
 
@@ -9,7 +11,12 @@ from users.pages.signup_page import SignupPage
 class TestRegisterUser:
     """TC 1 — Register User"""
 
-    def test_new_user_can_register(self, unauthenticated_page, settings, disposable_credentials) -> None:
+    def test_new_user_can_register(
+        self,
+        unauthenticated_page: Page,
+        settings: Settings,
+        disposable_credentials: dict[str, str],
+    ) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
         login_page.start_signup(
             name=disposable_credentials["name"],
@@ -21,7 +28,12 @@ class TestRegisterUser:
         signup.fill_address()
         signup.create_account()
 
-    def test_account_created_page_shows_success(self, unauthenticated_page, settings, disposable_credentials) -> None:
+    def test_account_created_page_shows_success(
+        self,
+        unauthenticated_page: Page,
+        settings: Settings,
+        disposable_credentials: dict[str, str],
+    ) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
         login_page.start_signup(
             name=disposable_credentials["name"],
@@ -38,7 +50,12 @@ class TestRegisterUser:
 class TestRegisterWithExistingEmail:
     """TC 5 — Register User with Existing Email"""
 
-    def test_existing_email_shows_error(self, unauthenticated_page, settings, live_account) -> None:
+    def test_existing_email_shows_error(
+        self,
+        unauthenticated_page: Page,
+        settings: Settings,
+        live_account: dict[str, str],
+    ) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
         login_page.start_signup(name="Any Name", email=live_account["email"])
         error = login_page.get_signup_error()

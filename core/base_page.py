@@ -32,7 +32,7 @@ class BasePage(ABC):
     def _click_and_navigate(self, locator: Locator, target_url: str) -> None:
         locator.click()
         self._page.wait_for_load_state("domcontentloaded")
-        if self._page.url.split("#")[0].rstrip("/") != target_url.rstrip("/"):
+        if self._page.url.split("?")[0].rstrip("/") != target_url.rstrip("/"):
             self._page.goto(target_url, wait_until="domcontentloaded")
             self._dismiss_consent_banner()
 

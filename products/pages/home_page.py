@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,51 +11,51 @@ class HomePage(BasePage):
 
     # Locators
     @property
-    def _features_heading(self):
+    def _features_heading(self) -> Locator:
         return self._page.locator("h2", has_text="Features Items")
 
     @property
-    def _nav_products(self):
+    def _nav_products(self) -> Locator:
         return self._page.locator("a[href='/products']").first
 
     @property
-    def _nav_cart(self):
+    def _nav_cart(self) -> Locator:
         return self._page.locator("a[href='/view_cart']").first
 
     @property
-    def _nav_test_cases(self):
+    def _nav_test_cases(self) -> Locator:
         return self._page.locator("a[href='/test_cases']").first
 
     @property
-    def _nav_contact_us(self):
+    def _nav_contact_us(self) -> Locator:
         return self._page.locator("a[href='/contact_us']").first
 
     @property
-    def _subscribe_email(self):
+    def _subscribe_email(self) -> Locator:
         return self._page.locator("input#susbscribe_email")
 
     @property
-    def _subscribe_button(self):
+    def _subscribe_button(self) -> Locator:
         return self._page.locator("button#subscribe")
 
     @property
-    def _subscribe_success(self):
+    def _subscribe_success(self) -> Locator:
         return self._page.locator("div#success-subscribe")
 
     @property
-    def _scroll_up_arrow(self):
+    def _scroll_up_arrow(self) -> Locator:
         return self._page.locator("a#scrollUp")
 
     @property
-    def _hero_heading(self):
+    def _hero_heading(self) -> Locator:
         return self._page.locator(".item.active h2").first
 
     @property
-    def _recommended_add_to_cart(self):
+    def _recommended_add_to_cart(self) -> Locator:
         return self._page.locator("#recommended-item-carousel .add-to-cart")
 
     @property
-    def _cart_modal_link(self):
+    def _cart_modal_link(self) -> Locator:
         return self._page.locator("div.modal-content a[href='/view_cart']")
 
     # Actions

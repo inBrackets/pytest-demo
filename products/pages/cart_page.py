@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,39 +11,35 @@ class CartPage(BasePage):
 
     # Locators
     @property
-    def _cart_table(self):
-        return self._page.locator("#cart_info_table")
-
-    @property
-    def _cart_rows(self):
+    def _cart_rows(self) -> Locator:
         return self._page.locator("#cart_info_table tbody tr")
 
     @property
-    def _product_name_links(self):
+    def _product_name_links(self) -> Locator:
         return self._page.locator(".cart_description h4 a")
 
     @property
-    def _quantity_buttons(self):
+    def _quantity_buttons(self) -> Locator:
         return self._page.locator(".cart_quantity button")
 
     @property
-    def _delete_buttons(self):
+    def _delete_buttons(self) -> Locator:
         return self._page.locator("a.cart_quantity_delete")
 
     @property
-    def _subscribe_email(self):
+    def _subscribe_email(self) -> Locator:
         return self._page.locator("input#susbscribe_email")
 
     @property
-    def _subscribe_button(self):
+    def _subscribe_button(self) -> Locator:
         return self._page.locator("button#subscribe")
 
     @property
-    def _subscribe_success(self):
+    def _subscribe_success(self) -> Locator:
         return self._page.locator("div#success-subscribe")
 
     @property
-    def _checkout_button(self):
+    def _checkout_button(self) -> Locator:
         return self._page.locator("a.check_out")
 
     # Actions

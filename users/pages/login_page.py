@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,35 +11,35 @@ class LoginPage(BasePage):
 
     # Locators
     @property
-    def _login_email(self):
+    def _login_email(self) -> Locator:
         return self._page.locator("input[data-qa='login-email']")
 
     @property
-    def _login_password(self):
+    def _login_password(self) -> Locator:
         return self._page.locator("input[data-qa='login-password']")
 
     @property
-    def _login_button(self):
+    def _login_button(self) -> Locator:
         return self._page.locator("button[data-qa='login-button']")
 
     @property
-    def _login_error(self):
+    def _login_error(self) -> Locator:
         return self._page.locator("p:has-text('Your email or password is incorrect!')")
 
     @property
-    def _signup_name(self):
+    def _signup_name(self) -> Locator:
         return self._page.locator("input[data-qa='signup-name']")
 
     @property
-    def _signup_email(self):
+    def _signup_email(self) -> Locator:
         return self._page.locator("input[data-qa='signup-email']")
 
     @property
-    def _signup_button(self):
+    def _signup_button(self) -> Locator:
         return self._page.locator("button[data-qa='signup-button']")
 
     @property
-    def _signup_error(self):
+    def _signup_error(self) -> Locator:
         return self._page.locator("p:has-text('already exist')")
 
     # Actions

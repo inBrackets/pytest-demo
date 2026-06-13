@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,23 +11,23 @@ class CheckoutPage(BasePage):
 
     # Locators
     @property
-    def _delivery_address_section(self):
+    def _delivery_address_section(self) -> Locator:
         return self._page.locator("#address_delivery")
 
     @property
-    def _delivery_address_lines(self):
+    def _delivery_address_lines(self) -> Locator:
         return self._page.locator("#address_delivery li")
 
     @property
-    def _billing_address_lines(self):
+    def _billing_address_lines(self) -> Locator:
         return self._page.locator("#address_invoice li")
 
     @property
-    def _order_comment(self):
+    def _order_comment(self) -> Locator:
         return self._page.locator("textarea.form-control")
 
     @property
-    def _place_order_button(self):
+    def _place_order_button(self) -> Locator:
         return self._page.locator("a:has-text('Place Order')")
 
     # Actions

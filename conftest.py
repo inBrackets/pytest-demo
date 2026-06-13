@@ -1,12 +1,12 @@
 import os
 import uuid
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator
 
 import allure
 import pytest
 from filelock import FileLock
-from playwright.sync_api import Browser, BrowserContext, Page
+from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Page, Playwright
 
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
@@ -15,7 +15,7 @@ from users.pages.login_page import LoginPage
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    output_dir = Path(config.rootdir) / "output"
+    output_dir = config.rootpath / "output"
     allure_dir = output_dir / "allure-results"
     logs_dir = output_dir / "logs"
     allure_dir.mkdir(parents=True, exist_ok=True)
@@ -30,20 +30,23 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 @pytest.hookimpl(wrapper=True)
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
-    rep = yield
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[None]
+) -> Generator[None, pytest.TestReport, pytest.TestReport]:
+    rep: pytest.TestReport = yield
     setattr(item, f"rep_{rep.when}", rep)
     if rep.when == "call" and rep.failed:
-        pw_page: Page | None = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
-        if pw_page:
-            try:
-                allure.attach(
-                    pw_page.screenshot(),
-                    name="screenshot",
-                    attachment_type=allure.attachment_type.PNG,
-                )
-            except Exception:
-                pass
+        if isinstance(item, pytest.Function):
+            _candidate = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
+            if isinstance(_candidate, Page):
+                try:
+                    allure.attach(
+                        _candidate.screenshot(),
+                        name="screenshot",
+                        attachment_type=allure.attachment_type.PNG,
+                    )
+                except Exception:
+                    pass
     return rep
 
 
@@ -53,18 +56,22 @@ def settings() -> Settings:
 
 
 @pytest.fixture(scope="session")
-def browser_type_launch_args(browser_type_launch_args: dict, settings: Settings) -> dict:
+def browser_type_launch_args(
+    browser_type_launch_args: dict[str, Any], settings: Settings
+) -> dict[str, Any]:
     return {**browser_type_launch_args, "headless": settings.browser_headless}
 
 
 @pytest.fixture(scope="session")
-def _ae_api_context(playwright, settings: Settings):
+def _ae_api_context(
+    playwright: Playwright, settings: Settings
+) -> Generator[APIRequestContext, None, None]:
     context = playwright.request.new_context(timeout=settings.api_timeout)
     yield context
     context.dispose()
 
 
-def _account_lifecycle(client: AeAccountClient) -> Generator[dict, None, None]:
+def _account_lifecycle(client: AeAccountClient) -> Generator[dict[str, str], None, None]:
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
     password = "Test1234!"
     client.create_account(AeCreateAccountRequest.make(email=email, password=password))
@@ -78,19 +85,23 @@ def _account_lifecycle(client: AeAccountClient) -> Generator[dict, None, None]:
 
 
 @pytest.fixture(scope="session")
-def live_account(_ae_api_context, settings: Settings) -> Generator[dict, None, None]:
+def live_account(
+    _ae_api_context: APIRequestContext, settings: Settings
+) -> Generator[dict[str, str], None, None]:
     yield from _account_lifecycle(AeAccountClient(context=_ae_api_context, settings=settings))
 
 
 @pytest.fixture
-def temp_account(api_context, settings: Settings) -> Generator[dict, None, None]:
+def temp_account(
+    api_context: APIRequestContext, settings: Settings
+) -> Generator[dict[str, str], None, None]:
     yield from _account_lifecycle(AeAccountClient(context=api_context, settings=settings))
 
 
 @pytest.fixture(scope="session")
 def auth_state(
     browser: Browser,
-    live_account: dict,
+    live_account: dict[str, str],
     settings: Settings,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Path:
@@ -105,6 +116,11 @@ def auth_state(
                     username=live_account["email"],
                     password=live_account["password"],
                 )
+                if "/login" in pw_page.url:
+                    raise RuntimeError(
+                        f"Session login failed — still at {pw_page.url!r}. "
+                        "All authenticated tests would receive an unauthenticated context."
+                    )
                 context.storage_state(path=str(path))
             finally:
                 context.close()
@@ -122,7 +138,7 @@ def browser_context(
     auth_state: Path,
     trace_path: Path,
     settings: Settings,
-) -> BrowserContext:
+) -> Generator[BrowserContext, None, None]:
     context = browser.new_context(storage_state=str(auth_state))
     context.set_default_timeout(settings.browser_timeout)
     context.tracing.start(screenshots=True, snapshots=True)
@@ -132,14 +148,21 @@ def browser_context(
 
 
 @pytest.fixture
-def page(browser_context: BrowserContext, request: pytest.FixtureRequest) -> Page:
+def page(
+    browser_context: BrowserContext, request: pytest.FixtureRequest
+) -> Generator[Page, None, None]:
     pw_page = browser_context.new_page()
     yield pw_page
     pw_page.close()
 
 
 @pytest.fixture
-def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, request):
+def unauthenticated_page(
+    browser: Browser,
+    settings: Settings,
+    tmp_path: Path,
+    request: pytest.FixtureRequest,
+) -> Generator[Page, None, None]:
     context = browser.new_context()
     context.set_default_timeout(settings.browser_timeout)
     trace_zip = tmp_path / "trace.zip"
@@ -148,7 +171,9 @@ def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, r
     yield pw_page
     if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
         context.tracing.stop(path=str(trace_zip))
-        allure.attach.file(str(trace_zip), name="trace", attachment_type=allure.attachment_type.ZIP)
+        allure.attach.file(  # type: ignore[no-untyped-call]
+            str(trace_zip), name="trace", attachment_type=allure.attachment_type.ZIP
+        )
     else:
         context.tracing.stop()
     pw_page.close()
@@ -156,9 +181,11 @@ def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, r
 
 
 @pytest.fixture
-def disposable_credentials(api_context, settings) -> Generator[dict, None, None]:
+def disposable_credentials(
+    api_context: APIRequestContext, settings: Settings
+) -> Generator[dict[str, str], None, None]:
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
-    creds = {"name": "Pytest User", "email": email, "password": "Test1234!"}
+    creds: dict[str, str] = {"name": "Pytest User", "email": email, "password": "Test1234!"}
     yield creds
     try:
         AeAccountClient(api_context, settings).delete_account(
@@ -169,7 +196,9 @@ def disposable_credentials(api_context, settings) -> Generator[dict, None, None]
 
 
 @pytest.fixture
-def api_context(playwright, settings: Settings):
+def api_context(
+    playwright: Playwright, settings: Settings
+) -> Generator[APIRequestContext, None, None]:
     context = playwright.request.new_context(
         base_url=settings.api_base_url,
         timeout=settings.api_timeout,
@@ -179,12 +208,14 @@ def api_context(playwright, settings: Settings):
 
 
 @pytest.fixture(autouse=True)
-def attach_trace_on_failure(request: pytest.FixtureRequest, trace_path: Path) -> None:
+def attach_trace_on_failure(
+    request: pytest.FixtureRequest, trace_path: Path
+) -> Generator[None, None, None]:
     yield
     if not (getattr(request.node, "rep_call", None) and request.node.rep_call.failed):
         return
     if trace_path.exists():
-        allure.attach.file(
+        allure.attach.file(  # type: ignore[no-untyped-call]
             str(trace_path),
             name="trace",
             attachment_type=allure.attachment_type.ZIP,

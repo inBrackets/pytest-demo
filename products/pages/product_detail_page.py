@@ -1,7 +1,7 @@
 from typing import Self
 
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -13,67 +13,67 @@ class ProductDetailPage(BasePage):
 
     # Locators
     @property
-    def _product_info(self):
+    def _product_info(self) -> Locator:
         return self._page.locator(".product-information")
 
     @property
-    def _product_name(self):
+    def _product_name(self) -> Locator:
         return self._page.locator(".product-information h2")
 
     @property
-    def _product_price(self):
+    def _product_price(self) -> Locator:
         return self._page.locator(".product-information span span").first
 
     @property
-    def _product_category(self):
+    def _product_category(self) -> Locator:
         return self._page.locator(".product-information p", has_text="Category")
 
     @property
-    def _product_availability(self):
+    def _product_availability(self) -> Locator:
         return self._page.locator(".product-information p", has_text="Availability")
 
     @property
-    def _product_brand(self):
+    def _product_brand(self) -> Locator:
         return self._page.locator(".product-information p", has_text="Brand")
 
     @property
-    def _quantity_input(self):
+    def _quantity_input(self) -> Locator:
         return self._page.locator("input#quantity")
 
     @property
-    def _add_to_cart_button(self):
+    def _add_to_cart_button(self) -> Locator:
         return self._page.locator("button.cart")
 
     @property
-    def _cart_modal(self):
+    def _cart_modal(self) -> Locator:
         return self._page.locator("div.modal-content")
 
     @property
-    def _continue_shopping_button(self):
+    def _continue_shopping_button(self) -> Locator:
         return self._page.locator("button.close-modal")
 
     @property
-    def _cart_modal_link(self):
+    def _cart_modal_link(self) -> Locator:
         return self._page.locator("div.modal-content a[href='/view_cart']")
 
     @property
-    def _review_name(self):
+    def _review_name(self) -> Locator:
         return self._page.locator("input#name")
 
     @property
-    def _review_email(self):
+    def _review_email(self) -> Locator:
         return self._page.locator("input#email")
 
     @property
-    def _review_text(self):
+    def _review_text(self) -> Locator:
         return self._page.locator("textarea#review")
 
     @property
-    def _review_submit_button(self):
+    def _review_submit_button(self) -> Locator:
         return self._page.locator("button#button-review")
 
     @property
-    def _review_success(self):
+    def _review_success(self) -> Locator:
         return self._page.locator("div.alert-success").first
 
     # Actions

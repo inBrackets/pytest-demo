@@ -1,26 +1,23 @@
+from typing import Generator
+
 import pytest
+from playwright.sync_api import APIRequestContext, Page
 
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
-from checkout.pages.checkout_page import CheckoutPage
-from checkout.pages.payment_page import PaymentPage
+from core.config import Settings
 from products.pages.cart_page import CartPage
 from products.pages.product_page import ProductPage
 from users.pages.login_page import LoginPage
 
 
 @pytest.fixture
-def checkout_page(page, settings) -> CheckoutPage:
-    return CheckoutPage(page=page, settings=settings)
-
-
-@pytest.fixture
-def payment_page(page, settings) -> PaymentPage:
-    return PaymentPage(page=page, settings=settings)
-
-
-@pytest.fixture
-def registered_page(unauthenticated_page, settings, disposable_credentials, api_context):
+def registered_page(
+    unauthenticated_page: Page,
+    settings: Settings,
+    disposable_credentials: dict[str, str],
+    api_context: APIRequestContext,
+) -> Generator[Page, None, None]:
     """Page logged in with a freshly created temp account."""
     AeAccountClient(api_context, settings).create_account(
         AeCreateAccountRequest.make(
@@ -36,7 +33,7 @@ def registered_page(unauthenticated_page, settings, disposable_credentials, api_
     yield unauthenticated_page
 
 
-def add_product_and_checkout(page, settings):
+def add_product_and_checkout(page: Page, settings: Settings) -> None:
     """Helper: add first product to cart and proceed to checkout page."""
     product_pg = ProductPage(page=page, settings=settings)
     product_pg.navigate()

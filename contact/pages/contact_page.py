@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,35 +11,35 @@ class ContactPage(BasePage):
 
     # Locators
     @property
-    def _get_in_touch_heading(self):
+    def _get_in_touch_heading(self) -> Locator:
         return self._page.locator("h2", has_text="Get In Touch")
 
     @property
-    def _name_input(self):
+    def _name_input(self) -> Locator:
         return self._page.locator("input[data-qa='name']")
 
     @property
-    def _email_input(self):
+    def _email_input(self) -> Locator:
         return self._page.locator("input[data-qa='email']")
 
     @property
-    def _subject_input(self):
+    def _subject_input(self) -> Locator:
         return self._page.locator("input[data-qa='subject']")
 
     @property
-    def _message_textarea(self):
+    def _message_textarea(self) -> Locator:
         return self._page.locator("textarea[data-qa='message']")
 
     @property
-    def _submit_button(self):
+    def _submit_button(self) -> Locator:
         return self._page.locator("input[data-qa='submit-button']")
 
     @property
-    def _success_status(self):
+    def _success_status(self) -> Locator:
         return self._page.locator(".status.alert-success")
 
     @property
-    def _home_link(self):
+    def _home_link(self) -> Locator:
         return self._page.locator("a:has-text('Home')").first
 
     # Actions

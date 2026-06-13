@@ -2,6 +2,7 @@ import pytest
 
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
+from core.config import Settings
 
 
 @pytest.mark.api
@@ -9,14 +10,18 @@ from ae_account.models.ae_account_model import AeCreateAccountRequest
 class TestVerifyLogin:
     """API 7 — POST /api/verifyLogin with valid credentials"""
 
-    def test_returns_200_user_exists(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_returns_200_user_exists(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         response = ae_account_client.verify_login(
             email=temp_account["email"],
             password=temp_account["password"],
         )
         assert response.response_code == 200
 
-    def test_message_confirms_user_exists(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_message_confirms_user_exists(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         response = ae_account_client.verify_login(
             email=temp_account["email"],
             password=temp_account["password"],
@@ -28,7 +33,9 @@ class TestVerifyLogin:
 class TestVerifyLoginMissingEmail:
     """API 8 — POST /api/verifyLogin without email → 400"""
 
-    def test_returns_400_missing_parameter(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_returns_400_missing_parameter(
+        self, ae_account_client: AeAccountClient, settings: Settings
+    ) -> None:
         response = ae_account_client.verify_login_missing_email(
             password=settings.ae_password.get_secret_value()
         )
@@ -67,7 +74,9 @@ class TestVerifyLoginInvalidCredentials:
 class TestCreateAccount:
     """API 11 — POST /api/createAccount"""
 
-    def test_returns_201_user_created(self, ae_account_client: AeAccountClient, disposable_credentials) -> None:
+    def test_returns_201_user_created(
+        self, ae_account_client: AeAccountClient, disposable_credentials: dict[str, str]
+    ) -> None:
         payload = AeCreateAccountRequest.make(
             name=disposable_credentials["name"],
             email=disposable_credentials["email"],
@@ -76,7 +85,9 @@ class TestCreateAccount:
         response = ae_account_client.create_account(payload)
         assert response.response_code == 201
 
-    def test_message_confirms_creation(self, ae_account_client: AeAccountClient, disposable_credentials) -> None:
+    def test_message_confirms_creation(
+        self, ae_account_client: AeAccountClient, disposable_credentials: dict[str, str]
+    ) -> None:
         payload = AeCreateAccountRequest.make(
             name=disposable_credentials["name"],
             email=disposable_credentials["email"],
@@ -90,14 +101,18 @@ class TestCreateAccount:
 class TestDeleteAccount:
     """API 12 — DELETE /api/deleteAccount"""
 
-    def test_returns_200_account_deleted(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_returns_200_account_deleted(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         response = ae_account_client.delete_account(
             email=temp_account["email"],
             password=temp_account["password"],
         )
         assert response.response_code == 200
 
-    def test_message_confirms_deletion(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_message_confirms_deletion(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         response = ae_account_client.delete_account(
             email=temp_account["email"],
             password=temp_account["password"],
@@ -109,7 +124,9 @@ class TestDeleteAccount:
 class TestUpdateAccount:
     """API 13 — PUT /api/updateAccount"""
 
-    def test_returns_200_user_updated(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_returns_200_user_updated(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         payload = AeCreateAccountRequest.make(
             name="Updated Name",
             email=temp_account["email"],
@@ -118,7 +135,9 @@ class TestUpdateAccount:
         response = ae_account_client.update_account(payload)
         assert response.response_code == 200
 
-    def test_message_confirms_update(self, ae_account_client: AeAccountClient, temp_account) -> None:
+    def test_message_confirms_update(
+        self, ae_account_client: AeAccountClient, temp_account: dict[str, str]
+    ) -> None:
         payload = AeCreateAccountRequest.make(
             name="Updated Name",
             email=temp_account["email"],
@@ -133,15 +152,21 @@ class TestUpdateAccount:
 class TestGetUserDetail:
     """API 14 — GET /api/getUserDetailByEmail"""
 
-    def test_returns_200_with_user_object(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_returns_200_with_user_object(
+        self, ae_account_client: AeAccountClient, settings: Settings
+    ) -> None:
         response = ae_account_client.get_user_detail(email=settings.ae_username)
         assert response.response_code == 200
 
-    def test_email_matches_requested(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_email_matches_requested(
+        self, ae_account_client: AeAccountClient, settings: Settings
+    ) -> None:
         response = ae_account_client.get_user_detail(email=settings.ae_username)
         assert response.user.email == settings.ae_username
 
-    def test_user_has_required_fields(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_user_has_required_fields(
+        self, ae_account_client: AeAccountClient, settings: Settings
+    ) -> None:
         response = ae_account_client.get_user_detail(email=settings.ae_username)
         user = response.user
         assert user.name

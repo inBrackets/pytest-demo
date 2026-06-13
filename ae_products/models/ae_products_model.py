@@ -1,9 +1,8 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
+from core.ae_models import AeBaseResponse, AeMessageResponse
 
-class AeBaseResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    response_code: int = Field(alias="responseCode")
+__all__ = ["AeBaseResponse", "AeMessageResponse"]
 
 
 class AeUserType(BaseModel):
@@ -35,6 +34,3 @@ class AeBrand(BaseModel):
 class AeBrandsResponse(AeBaseResponse):
     brands: list[AeBrand]
 
-
-class AeMessageResponse(AeBaseResponse):
-    message: str

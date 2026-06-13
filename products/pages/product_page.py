@@ -1,5 +1,5 @@
 import allure
-from playwright.sync_api import expect
+from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
 
@@ -11,39 +11,39 @@ class ProductPage(BasePage):
 
     # Locators
     @property
-    def _all_products_heading(self):
+    def _all_products_heading(self) -> Locator:
         return self._page.locator("h2", has_text="All Products")
 
     @property
-    def _product_names(self):
+    def _product_names(self) -> Locator:
         return self._page.locator(".productinfo p")
 
     @property
-    def _search_input(self):
+    def _search_input(self) -> Locator:
         return self._page.locator("#search_product")
 
     @property
-    def _search_button(self):
+    def _search_button(self) -> Locator:
         return self._page.locator("#submit_search")
 
     @property
-    def _view_product_links(self):
+    def _view_product_links(self) -> Locator:
         return self._page.locator("a:has-text('View Product')")
 
     @property
-    def _product_cards(self):
+    def _product_cards(self) -> Locator:
         return self._page.locator(".productinfo")
 
     @property
-    def _cart_modal(self):
+    def _cart_modal(self) -> Locator:
         return self._page.locator("div.modal-content")
 
     @property
-    def _continue_shopping_button(self):
+    def _continue_shopping_button(self) -> Locator:
         return self._page.locator("button.close-modal")
 
     @property
-    def _cart_modal_link(self):
+    def _cart_modal_link(self) -> Locator:
         return self._page.locator("div.modal-content a[href='/view_cart']")
 
     # Actions

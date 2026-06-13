@@ -31,6 +31,11 @@ markers = [
     "slow: long-running end-to-end flows",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+]
+
 # Run profiles (mutually exclusive — xdist and rerunfailures cannot be active together):
 #   parallel:  uv run pytest -n auto
 #   stable:    uv run pytest --reruns 1 --reruns-delay 2
@@ -38,3 +43,16 @@ markers = [
 # Allure report:
 #   serve (opens browser):  allure serve output/allure-results
 #   build static HTML:      allure generate output/allure-results --output output/allure-report --clean
+#
+# Type checking:
+#   uv run mypy conftest.py core/ models/ users/ posts/ products/ checkout/ contact/ ae_account/ ae_products/ tests/
+
+[tool.mypy]
+strict = true
+explicit_package_bases = true
+exclude = ["\\.venv"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["allure.*", "filelock.*"]
+ignore_missing_imports = true

@@ -1,15 +1,10 @@
 from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
+from core.ae_models import AeBaseResponse, AeMessageResponse
 
-class AeBaseResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    response_code: int = Field(alias="responseCode")
-
-
-class AeMessageResponse(AeBaseResponse):
-    message: str
+__all__ = ["AeBaseResponse", "AeMessageResponse"]
 
 
 class AeUserDetail(BaseModel):
