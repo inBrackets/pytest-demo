@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
-from playwright.sync_api import APIRequestContext
+from playwright.sync_api import APIRequestContext, APIResponse
 
 from core.config import Settings
 from core.exceptions import ApiError
@@ -28,22 +28,23 @@ class BaseApiClient(ABC, Generic[T]):
     @abstractmethod
     def endpoint(self) -> str: ...
 
+    def _raise_for_status(self, response: APIResponse, url: str) -> None:
+        self._logger.debug("← %d", response.status)
+        if not response.ok:
+            raise ApiError(response.status, url, response.text())
+
     def _get(self, resource_id: int | str, params: dict[str, Any] | None = None) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("GET %s", url)
         response = self._context.get(url, params=params)
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)
         return self._response_model.model_validate(response.json())
 
     def _get_many(self, params: dict[str, Any] | None = None) -> list[T]:
         url = f"{self.base_url}{self.endpoint}"
         self._logger.debug("GET %s", url)
         response = self._context.get(url, params=params)
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)
         data = response.json()
         if not isinstance(data, list):
             raise ApiError(response.status, url, f"Expected list response, got {type(data).__name__}")
@@ -53,33 +54,25 @@ class BaseApiClient(ABC, Generic[T]):
         url = f"{self.base_url}{self.endpoint}"
         self._logger.debug("POST %s", url)
         response = self._context.post(url, data=payload.model_dump(by_alias=True))
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)
         return self._response_model.model_validate(response.json())
 
     def _put(self, resource_id: int | str, payload: AppBaseModel) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("PUT %s", url)
         response = self._context.put(url, data=payload.model_dump(by_alias=True))
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)
         return self._response_model.model_validate(response.json())
 
     def _patch(self, resource_id: int | str, payload: AppBaseModel) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("PATCH %s", url)
         response = self._context.patch(url, data=payload.model_dump(by_alias=True))
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)
         return self._response_model.model_validate(response.json())
 
     def _delete(self, resource_id: int | str) -> None:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("DELETE %s", url)
         response = self._context.delete(url)
-        self._logger.debug("← %d", response.status)
-        if not response.ok:
-            raise ApiError(response.status, url, response.text())
+        self._raise_for_status(response, url)

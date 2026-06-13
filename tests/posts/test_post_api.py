@@ -47,3 +47,18 @@ class TestCreatePost:
     def test_response_includes_generated_id(self, post_client: PostApiClient) -> None:
         post = post_client.create(CreatePostRequest.make())
         assert post.id > 0
+
+
+@pytest.mark.api
+class TestUpdatePost:
+    def test_updated_title_is_reflected(self, post_client: PostApiClient) -> None:
+        payload = CreatePostRequest.make(title="Updated Title")
+        post = post_client.update(post_id=1, payload=payload)
+        assert post.title == "Updated Title"
+
+
+@pytest.mark.api
+class TestDeletePost:
+    def test_delete_returns_none(self, post_client: PostApiClient) -> None:
+        result = post_client.delete(post_id=1)
+        assert result is None

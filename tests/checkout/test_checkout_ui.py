@@ -27,6 +27,7 @@ class TestPlaceOrderRegisterBeforeCheckout:
         checkout.add_comment("Automated test order")
         checkout.place_order()
         payment = PaymentPage(page=registered_page, settings=settings)
+        payment.is_loaded()
         payment.fill_payment()
         payment.confirm_payment()
 
@@ -46,6 +47,7 @@ class TestPlaceOrderLoginBeforeCheckout:
         checkout.add_comment("Login before checkout test")
         checkout.place_order()
         payment = PaymentPage(page=registered_page, settings=settings)
+        payment.is_loaded()
         payment.fill_payment()
         payment.confirm_payment()
 
@@ -90,6 +92,7 @@ class TestPlaceOrderRegisterDuringCheckout:
         checkout.add_comment("Register during checkout test")
         checkout.place_order()
         payment = PaymentPage(page=unauthenticated_page, settings=settings)
+        payment.is_loaded()
         payment.fill_payment()
         payment.confirm_payment()
 
@@ -124,6 +127,7 @@ class TestDownloadInvoice:
         checkout.is_loaded()
         checkout.place_order()
         payment = PaymentPage(page=registered_page, settings=settings)
+        payment.is_loaded()
         payment.fill_payment()
         payment.confirm_payment()
         filename = payment.download_invoice()

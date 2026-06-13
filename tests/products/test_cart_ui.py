@@ -74,7 +74,7 @@ class TestSearchAndVerifyCartAfterLogin:
     """TC 20 — Search Products and Verify Cart After Login"""
 
     def test_cart_products_persist_after_login(
-        self, unauthenticated_page: Page, settings: Settings
+        self, unauthenticated_page: Page, settings: Settings, live_account: dict[str, str]
     ) -> None:
         product_pg = ProductPage(page=unauthenticated_page, settings=settings)
         product_pg.navigate()
@@ -87,8 +87,8 @@ class TestSearchAndVerifyCartAfterLogin:
         names_before = cart.get_product_names()
 
         LoginPage(page=unauthenticated_page, settings=settings).navigate().login(
-            username=settings.ae_username,
-            password=settings.ae_password.get_secret_value(),
+            username=live_account["email"],
+            password=live_account["password"],
         )
 
         unauthenticated_page.goto(
