@@ -781,6 +781,36 @@ remains untouched.
 
 ---
 
+## CI / GitHub Actions
+
+The workflow at `.github/workflows/ci.yml` triggers on every push and on manual dispatch.
+
+### What the workflow does
+
+1. Installs uv, syncs dependencies from the lockfile (`--frozen`), installs Chromium with system dependencies.
+2. Runs the full test suite (`uv run pytest`) with credentials injected from GitHub Secrets.
+3. Fetches the `gh-pages` branch to restore Allure's `history/` directory, which powers the trend graph.
+4. Generates the HTML report with `allure generate`.
+5. Deploys to GitHub Pages in three steps:
+   - Full report → `/<run_number>/` (every run is preserved)
+   - `history/` directory → `/history/` (shared across runs; picked up by the next run)
+   - Root `index.html` → `/` (meta-refresh redirect to the latest run number)
+
+Result: `https://<user>.github.io/<repo>/` always opens the latest report; previous runs remain browsable at `/<run_number>/`.
+
+### One-time repository setup
+
+1. Add two repository secrets (**Settings → Secrets → Actions**):
+   - `AE_USERNAME` — automationexercise.com login email
+   - `AE_PASSWORD` — automationexercise.com password
+2. After the first workflow run creates the `gh-pages` branch, enable GitHub Pages (**Settings → Pages**):
+   - Source: **Deploy from a branch**
+   - Branch: `gh-pages` / `/ (root)`
+
+The first run will not have trend history (no previous `gh-pages` branch). All subsequent runs will carry the Allure history forward.
+
+---
+
 ## Verification Checklist
 
 1. `uv run pytest users/tests/test_user_api.py -v` — API smoke, schema validation.
