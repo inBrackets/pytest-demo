@@ -38,8 +38,8 @@ class TestRegisterUser:
 class TestRegisterWithExistingEmail:
     """TC 5 — Register User with Existing Email"""
 
-    def test_existing_email_shows_error(self, unauthenticated_page, settings) -> None:
+    def test_existing_email_shows_error(self, unauthenticated_page, settings, live_account) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
-        login_page.start_signup(name="Any Name", email=settings.ae_username)
+        login_page.start_signup(name="Any Name", email=live_account["email"])
         error = login_page.get_signup_error()
         assert "already exist" in error.lower()

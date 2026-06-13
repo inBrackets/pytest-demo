@@ -12,11 +12,11 @@ class TestLoginPage:
         LoginPage(page=unauthenticated_page, settings=settings).navigate()
 
     def test_valid_credentials_redirect_away_from_login(
-        self, unauthenticated_page, settings
+        self, unauthenticated_page, settings, live_account
     ) -> None:
         LoginPage(page=unauthenticated_page, settings=settings).navigate().login(
-            username=settings.ae_username,
-            password=settings.ae_password.get_secret_value(),
+            username=live_account["email"],
+            password=live_account["password"],
         )
         assert "/login" not in unauthenticated_page.url
 
@@ -41,11 +41,11 @@ class TestLoginWithInvalidCredentials:
 class TestLogout:
     """TC 4 — Logout User"""
 
-    def test_logout_redirects_to_login(self, unauthenticated_page, settings) -> None:
+    def test_logout_redirects_to_login(self, unauthenticated_page, settings, live_account) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
         login_page.login(
-            username=settings.ae_username,
-            password=settings.ae_password.get_secret_value(),
+            username=live_account["email"],
+            password=live_account["password"],
         )
         assert "/login" not in unauthenticated_page.url
         unauthenticated_page.locator("a[href='/logout']").click()

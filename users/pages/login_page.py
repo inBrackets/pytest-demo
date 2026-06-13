@@ -40,7 +40,7 @@ class LoginPage(BasePage):
 
     @property
     def _signup_error(self):
-        return self._page.locator("p:has-text('Email Address already exist!')")
+        return self._page.locator("p:has-text('already exist')")
 
     # Actions
     @allure.step("Verify login page is loaded")
@@ -54,6 +54,7 @@ class LoginPage(BasePage):
         self._login_password.fill(password)
         self._dismiss_consent_banner()
         self._login_button.click()
+        self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Get login error message")
     def get_error_message(self) -> str:

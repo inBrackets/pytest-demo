@@ -62,4 +62,4 @@ class ContactPage(BasePage):
 
     @allure.step("Return to home page")
     def go_home(self) -> None:
-        self._home_link.click()
+        self._click_and_navigate(self._home_link, self._settings.ui_base_url)

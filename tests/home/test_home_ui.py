@@ -12,7 +12,7 @@ class TestNavigateToTestCasesPage:
     def test_test_cases_page_loads(self, home_page: HomePage) -> None:
         home_page.navigate()
         home_page.go_to_test_cases()
-        assert "/test_cases" in home_page._page.url
+        assert "/test_cases" in home_page._page.url.split("#")[0]
 
 
 @pytest.mark.ui

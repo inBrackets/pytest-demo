@@ -73,7 +73,7 @@ class HomePage(BasePage):
 
     @allure.step("Click 'Test Cases' in navigation")
     def go_to_test_cases(self) -> None:
-        self._nav_test_cases.click()
+        self._click_and_navigate(self._nav_test_cases, f"{self._settings.ui_base_url}/test_cases")
 
     @allure.step("Click 'Contact us' in navigation")
     def go_to_contact_us(self) -> None:

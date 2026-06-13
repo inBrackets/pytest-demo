@@ -8,6 +8,8 @@ import pytest
 from filelock import FileLock
 from playwright.sync_api import Browser, BrowserContext, Page
 
+from ae_account.api.ae_account_client import AeAccountClient
+from ae_account.models.ae_account_model import AeCreateAccountRequest
 from core.config import Settings
 from users.pages.login_page import LoginPage
 
@@ -56,8 +58,39 @@ def browser_type_launch_args(browser_type_launch_args: dict, settings: Settings)
 
 
 @pytest.fixture(scope="session")
+def _ae_api_context(playwright, settings: Settings):
+    context = playwright.request.new_context(timeout=settings.api_timeout)
+    yield context
+    context.dispose()
+
+
+def _account_lifecycle(client: AeAccountClient) -> Generator[dict, None, None]:
+    email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
+    password = "Test1234!"
+    client.create_account(AeCreateAccountRequest.make(email=email, password=password))
+    try:
+        yield {"email": email, "password": password}
+    finally:
+        try:
+            client.delete_account(email=email, password=password)
+        except Exception:
+            pass
+
+
+@pytest.fixture(scope="session")
+def live_account(_ae_api_context, settings: Settings) -> Generator[dict, None, None]:
+    yield from _account_lifecycle(AeAccountClient(context=_ae_api_context, settings=settings))
+
+
+@pytest.fixture
+def temp_account(api_context, settings: Settings) -> Generator[dict, None, None]:
+    yield from _account_lifecycle(AeAccountClient(context=api_context, settings=settings))
+
+
+@pytest.fixture(scope="session")
 def auth_state(
     browser: Browser,
+    live_account: dict,
     settings: Settings,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Path:
@@ -69,8 +102,8 @@ def auth_state(
             try:
                 pw_page = context.new_page()
                 LoginPage(pw_page, settings).navigate().login(
-                    username=settings.ae_username,
-                    password=settings.ae_password.get_secret_value(),
+                    username=live_account["email"],
+                    password=live_account["password"],
                 )
                 context.storage_state(path=str(path))
             finally:
@@ -124,8 +157,6 @@ def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, r
 
 @pytest.fixture
 def disposable_credentials(api_context, settings) -> Generator[dict, None, None]:
-    """Generate a unique account, yield credentials, delete via API in teardown."""
-    from ae_account.api.ae_account_client import AeAccountClient
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
     creds = {"name": "Pytest User", "email": email, "password": "Test1234!"}
     yield creds

@@ -9,17 +9,17 @@ from ae_account.models.ae_account_model import AeCreateAccountRequest
 class TestVerifyLogin:
     """API 7 — POST /api/verifyLogin with valid credentials"""
 
-    def test_returns_200_user_exists(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_returns_200_user_exists(self, ae_account_client: AeAccountClient, temp_account) -> None:
         response = ae_account_client.verify_login(
-            email=settings.ae_username,
-            password=settings.ae_password.get_secret_value(),
+            email=temp_account["email"],
+            password=temp_account["password"],
         )
         assert response.response_code == 200
 
-    def test_message_confirms_user_exists(self, ae_account_client: AeAccountClient, settings) -> None:
+    def test_message_confirms_user_exists(self, ae_account_client: AeAccountClient, temp_account) -> None:
         response = ae_account_client.verify_login(
-            email=settings.ae_username,
-            password=settings.ae_password.get_secret_value(),
+            email=temp_account["email"],
+            password=temp_account["password"],
         )
         assert "User exists" in response.message
 

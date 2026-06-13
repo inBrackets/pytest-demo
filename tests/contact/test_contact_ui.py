@@ -27,4 +27,5 @@ class TestContactUsForm:
         )
         contact_page.is_success_visible()
         contact_page.go_home()
-        assert contact_page._page.url.rstrip("/") == contact_page._settings.ui_base_url.rstrip("/")
+        actual_url = contact_page._page.url.split("#")[0].rstrip("/")
+        assert actual_url == contact_page._settings.ui_base_url.rstrip("/")

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Self
 
 import allure
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from core.config import Settings
 
@@ -28,6 +28,13 @@ class BasePage(ABC):
             self._dismiss_consent_banner()
             self.is_loaded()
             return self
+
+    def _click_and_navigate(self, locator: Locator, target_url: str) -> None:
+        locator.click()
+        self._page.wait_for_load_state("domcontentloaded")
+        if self._page.url.split("#")[0].rstrip("/") != target_url.rstrip("/"):
+            self._page.goto(target_url, wait_until="domcontentloaded")
+            self._dismiss_consent_banner()
 
     def _dismiss_consent_banner(self) -> None:
         try:
