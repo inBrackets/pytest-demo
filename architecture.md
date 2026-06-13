@@ -491,14 +491,66 @@ def browser_type_launch_args(browser_type_launch_args: dict, settings: Settings)
 def settings() -> Settings:
     return Settings()
 
-# auth_state: session-scoped but xdist-safe via tmp_path_factory + filelock.
-# Creates its own temporary BrowserContext + Page solely to perform login,
-# then saves storage state to a shared file and closes the context.
-# Each xdist worker acquires a FileLock before checking if the file already
-# exists; only the first worker performs the login round-trip.
-# Uses LoginPage (not raw selectors) to stay consistent with the Page Object pattern.
+# live_account: session-scoped account created once via the AE REST API and
+# deleted in teardown.  All authenticated UI tests share it; the actual
+# credentials never appear in Settings or test code.
 @pytest.fixture(scope="session")
-def auth_state(browser, settings, tmp_path_factory) -> Path:
+def live_account(_ae_api_context, settings) -> Generator[dict[str, str], None, None]:
+    yield from _account_lifecycle(AeAccountClient(context=_ae_api_context, settings=settings))
+
+# temp_account: function-scoped — a fresh account per test.  Used by tests
+# that mutate or delete the account (so they don't interfere with live_account).
+@pytest.fixture
+def temp_account(api_context, settings) -> Generator[dict[str, str], None, None]:
+    yield from _account_lifecycle(AeAccountClient(context=api_context, settings=settings))
+
+# _account_lifecycle: helper (not a fixture) that creates an account before
+# yield and deletes it in a try/finally so cleanup always runs even if the
+# test itself deletes the account first.
+def _account_lifecycle(client):
+    email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
+    password = "Test1234!"
+    client.create_account(AeCreateAccountRequest.make(email=email, password=password))
+    try:
+        yield {"email": email, "password": password}
+    finally:
+        try:
+            client.delete_account(email=email, password=password)
+        except Exception:
+            pass
+
+# disposable_credentials: yields a name/email/password dict and deletes the
+# account at teardown.  Used by tests that create an account through the UI
+# (not via the API) — the teardown API call cleans up after the UI flow.
+@pytest.fixture
+def disposable_credentials(api_context, settings) -> Generator[dict[str, str], None, None]:
+    email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
+    creds = {"name": "Pytest User", "email": email, "password": "Test1234!"}
+    yield creds
+    try:
+        AeAccountClient(api_context, settings).delete_account(
+            email=creds["email"], password=creds["password"]
+        )
+    except Exception:
+        pass
+
+# _ae_api_context: session-scoped APIRequestContext used exclusively by
+# live_account.  Kept separate from the function-scoped api_context so the
+# session account fixture does not force a new HTTP context for every test.
+@pytest.fixture(scope="session")
+def _ae_api_context(playwright, settings) -> Generator[APIRequestContext, None, None]:
+    context = playwright.request.new_context(timeout=settings.api_timeout)
+    yield context
+    context.dispose()
+
+# auth_state: session-scoped but xdist-safe via tmp_path_factory + filelock.
+# Depends on live_account (not on settings.ae_username directly) so the
+# credentials are always the same account the session fixture keeps alive.
+# After login, validates that the URL changed away from /login before saving
+# storage state — a missing redirect would silently give every test an
+# unauthenticated context, producing confusing failures far from the cause.
+@pytest.fixture(scope="session")
+def auth_state(browser, live_account, settings, tmp_path_factory) -> Path:
     path = tmp_path_factory.getbasetemp() / "storage_state.json"
     lock = FileLock(str(path) + ".lock")
     with lock:
@@ -507,9 +559,14 @@ def auth_state(browser, settings, tmp_path_factory) -> Path:
             try:
                 pw_page = context.new_page()
                 LoginPage(pw_page, settings).navigate().login(
-                    username=settings.ae_username,
-                    password=settings.ae_password.get_secret_value(),
+                    username=live_account["email"],
+                    password=live_account["password"],
                 )
+                if "/login" in pw_page.url:
+                    raise RuntimeError(
+                        f"Session login failed — still at {pw_page.url!r}. "
+                        "All authenticated tests would receive an unauthenticated context."
+                    )
                 context.storage_state(path=str(path))
             finally:
                 context.close()   # always close even if login throws
@@ -549,12 +606,25 @@ def api_context(playwright, settings):
     context.dispose()
 
 # pytest_configure runs before any fixture.
-# Without this, all xdist workers write to the same logs/test.log simultaneously —
-# on Windows that causes PermissionError or interleaved/corrupted output.
+# Creates output directories so they exist for every run (CI and local).
+# Sets the Allure results directory and the per-worker log file path here —
+# using absolute paths derived from config.rootpath so they are correct
+# regardless of the working directory (PyCharm, terminal, CI).
+# Without the per-worker log path, all xdist workers write to the same
+# logs/test.log simultaneously → PermissionError or corrupted output on Windows.
 def pytest_configure(config):
+    output_dir = config.rootpath / "output"
+    allure_dir = output_dir / "allure-results"
+    logs_dir   = output_dir / "logs"
+    allure_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir.mkdir(parents=True, exist_ok=True)
+
+    if hasattr(config.option, "allure_report_dir"):
+        config.option.allure_report_dir = str(allure_dir)
+
     worker_id = os.environ.get("PYTEST_XDIST_WORKER")
-    if worker_id:
-        config.option.log_file = f"logs/test_{worker_id}.log"
+    log_name = f"test_{worker_id}.log" if worker_id else "test.log"
+    config.option.log_file = str(logs_dir / log_name)
 
 # Sets rep_call/rep_setup/rep_teardown on the item for fixture teardown checks,
 # and captures a screenshot directly into the Allure test result on call-phase failure.
@@ -576,21 +646,47 @@ def pytest_runtest_makereport(item, call):
     return rep
 
 # Attaches the Playwright trace after test failure.
-# Does NOT depend on browser_context or page — API tests are unaffected.
-# trace_path is cheap (just a Path) and safe to check on any test.
+# Takes trace_path as a direct parameter (autouse pulls it in for every test).
+# The exists() guard makes it a no-op for API tests and any test that did not
+# start a tracing session — trace_path is just a Path object with no side effects.
 @pytest.fixture(autouse=True)
-def attach_trace_on_failure(request):
+def attach_trace_on_failure(request, trace_path):
     yield
     if not (getattr(request.node, "rep_call", None) and request.node.rep_call.failed):
         return
-    if "trace_path" in request.fixturenames:
-        tp: Path = request.getfixturevalue("trace_path")
-        if tp.exists():
-            allure.attach.file(str(tp), name="trace",
-                               attachment_type=allure.attachment_type.ZIP)
+    if trace_path.exists():
+        allure.attach.file(str(trace_path), name="trace",
+                           attachment_type=allure.attachment_type.ZIP)
 ```
 
-### Feature `conftest.py` (e.g. `users/conftest.py`)
+# unauthenticated_page lives in the ROOT conftest — it is used by tests across
+# multiple feature folders (users, checkout, products) so it must be globally
+# available.  It bypasses auth_state entirely: no storage_state → no session
+# cookie → browser starts unauthenticated.
+# Trace handling is inline (stop+attach on failure, discard on pass) because
+# this fixture owns its own BrowserContext and cannot delegate to
+# attach_trace_on_failure (which only covers contexts created via browser_context).
+# Screenshot on failure is handled by pytest_runtest_makereport, which also
+# checks item.funcargs.get("unauthenticated_page") — no duplication needed here.
+@pytest.fixture
+def unauthenticated_page(browser, settings, tmp_path, request):
+    context = browser.new_context()   # no storage_state — fresh unauthenticated session
+    context.set_default_timeout(settings.browser_timeout)
+    trace_zip = tmp_path / "trace.zip"
+    context.tracing.start(screenshots=True, snapshots=True)
+    pw_page = context.new_page()
+    yield pw_page
+    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
+        context.tracing.stop(path=str(trace_zip))
+        allure.attach.file(str(trace_zip), name="trace",
+                           attachment_type=allure.attachment_type.ZIP)
+    else:
+        context.tracing.stop()   # discard trace on pass to save disk space
+    pw_page.close()
+    context.close()
+```
+
+### Feature `conftest.py` (e.g. `tests/users/conftest.py`)
 
 ```python
 @pytest.fixture
@@ -600,37 +696,14 @@ def user_client(api_context, settings) -> UserApiClient:
 @pytest.fixture
 def login_page(page, settings) -> LoginPage:
     return LoginPage(page=page, settings=settings)
-
-# login_page above uses the pre-authenticated `page` fixture — suitable for
-# tests that verify post-login UI behaviour (e.g. account name visible in header).
-#
-# Tests that exercise the login flow itself (fill credentials → submit → verify)
-# must start unauthenticated. Use unauthenticated_page instead.
-# The fixture replicates the screenshot + trace teardown from the root `page` fixture
-# so login test failures produce the same diagnostic artefacts as all other UI tests.
-@pytest.fixture
-def unauthenticated_page(browser, settings, tmp_path, request):
-    context = browser.new_context()   # no storage_state — fresh unauthenticated session
-    context.set_default_timeout(settings.browser_timeout)
-    trace_zip = tmp_path / "trace.zip"
-    context.tracing.start(screenshots=True, snapshots=True)
-    page = context.new_page()
-    yield page
-    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        allure.attach(page.screenshot(full_page=True), name="screenshot",
-                      attachment_type=allure.attachment_type.PNG)
-        context.tracing.stop(path=str(trace_zip))
-        allure.attach.file(str(trace_zip), name="trace",
-                           attachment_type=allure.attachment_type.ZIP)
-    else:
-        context.tracing.stop()   # discard trace on pass to save disk space
-    page.close()
-    context.close()
 ```
 
+`login_page` above uses the pre-authenticated `page` fixture — suitable for tests that
+verify post-login UI behaviour. Tests that exercise the login form itself (credential
+validation, redirect on success, error messaging) must start unauthenticated and use
+`unauthenticated_page` from the root conftest instead.
+
 `unauthenticated_page` bypasses `auth_state` so the session cookie is absent.
-Tests using it see the login form in its initial state, which is required for testing
-credential validation, redirect-on-success, and error messaging.
 Because it owns its context, it manages its own tracing inline rather than delegating
 to `attach_trace_on_failure` (which only covers contexts created via the root `browser_context`).
 
@@ -663,20 +736,17 @@ the same time** — rerunfailures explicitly disables itself under xdist. The st
 
 - Normal development / CI fast run: `pytest -n auto` (parallel, no reruns).
 - Flaky-detection / stability run: `pytest --reruns 1 --reruns-delay 2` (serial, with retries).
-- Both profiles are exposed as `uv run` scripts in `pyproject.toml`.
-  Note: `[project.scripts]` expects `module:function` entry points and cannot hold shell
-  commands. Use `[tool.uv.scripts]` (uv-specific, supports shell strings) instead:
+Run both profiles directly with `uv run`:
 
-```toml
-[tool.pytest.ini_options]
-# Neither -n auto nor --reruns in addopts — they are mutually exclusive.
-addopts = "--alluredir=allure-results"
-
-[tool.uv.scripts]
-test-parallel = "pytest -n auto"
-test-stable   = "pytest --reruns 1 --reruns-delay 2"
-# Usage: uv run test-parallel  /  uv run test-stable
 ```
+uv run pytest -n auto                      # parallel
+uv run pytest --reruns 1 --reruns-delay 2  # serial with retries
+```
+
+`addopts` in `pyproject.toml` is intentionally empty — neither flag is baked in because
+they are mutually exclusive. The allure results directory is set in `pytest_configure`
+(not via `addopts`) so it resolves to an absolute path under `output/` regardless of
+the working directory.
 
 ---
 
@@ -806,8 +876,8 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-# -n auto and --reruns are mutually exclusive; omit both from addopts.
-# Run via: uv run pytest -n auto  OR  uv run pytest --reruns 1 --reruns-delay 2
+# addopts is empty — -n auto and --reruns are mutually exclusive; pass them directly.
+# alluredir and log_file are set in pytest_configure (absolute paths under output/).
 addopts        = ""
 testpaths      = ["tests"]
 pythonpath     = ["."]
@@ -823,13 +893,22 @@ markers = [
     "smoke: critical-path tests",
     "api: REST API tests",
     "ui: browser UI tests",
+    "slow: long-running end-to-end flows",
 ]
-# log_file and alluredir are set in pytest_configure (conftest.py) so they
-# resolve to absolute paths under output/ regardless of the working directory.
 
-# [tool.uv.scripts] is not supported in this version of uv — run profiles directly:
-#   parallel:  uv run pytest -n auto
-#   stable:    uv run pytest --reruns 1 --reruns-delay 2
+[dependency-groups]
+dev = ["mypy>=2.1.0"]
+
+[tool.mypy]
+strict = true
+explicit_package_bases = true
+exclude = ["\\.venv"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["allure.*", "filelock.*"]
+ignore_missing_imports = true
+# Run: uv run mypy conftest.py core/ models/ users/ posts/ products/ checkout/ contact/ ae_account/ ae_products/ tests/
 ```
 
 ---
@@ -904,8 +983,8 @@ The first run will not have trend history (no previous `gh-pages` branch). All s
 
 ## Verification Checklist
 
-1. `uv run pytest users/tests/test_user_api.py -v` — API smoke, schema validation.
-2. `uv run pytest products/tests/test_product_ui.py -v --headed` — UI smoke with visible browser.
-3. `uv run pytest -n 4` — parallel run; confirms no shared-state fixture collisions.
-4. `allure serve allure-results` — report renders with steps, logs, and artefacts.
+1. `uv run pytest tests/users/test_user_api.py -v` — API smoke, schema validation.
+2. `uv run pytest tests/products/test_product_ui.py -v --headed` — UI smoke with visible browser.
+3. `uv run pytest -n auto` — parallel run; confirms no shared-state fixture collisions.
+4. `allure serve output/allure-results` — report renders with steps, logs, and artefacts.
 5. `uv run pytest -m smoke --co -q` — confirms marker collection covers expected tests.
