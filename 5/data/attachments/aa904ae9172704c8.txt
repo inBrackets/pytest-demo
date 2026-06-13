@@ -1,0 +1,2 @@
+2026-06-13 05:40:20 DEBUG    users.api.user_client: GET https://jsonplaceholder.typicode.com/users/9999
+2026-06-13 05:40:20 DEBUG    users.api.user_client: ← 404
