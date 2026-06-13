@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required for peaceiris/actions-gh-pages to push to gh-pages
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Install Playwright browsers
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run tests
+        env:
+          AE_USERNAME: ${{ secrets.AE_USERNAME }}
+          AE_PASSWORD: ${{ secrets.AE_PASSWORD }}
+          BROWSER_HEADLESS: "true"
+        run: uv run pytest --tb=short -q
+
+      # Fetch the existing gh-pages branch to restore Allure history.
+      # continue-on-error: first run has no gh-pages branch yet.
+      - name: Fetch Allure history from gh-pages
+        if: always()
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      # Copy /history from the previous report into allure-results so Allure
+      # generates trend graphs across runs.
+      - name: Restore history into allure-results
+        if: always()
+        run: |
+          mkdir -p output/allure-results/history
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history/. output/allure-results/history/
+          fi
+
+      - name: Install Allure CLI
+        if: always()
+        run: npm install -g allure-commandline
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: allure generate output/allure-results --output output/allure-report --clean
+
+      # Build a root index.html that redirects to this run's report.
+      # This makes https://<user>.github.io/<repo>/ always point to the latest run.
+      - name: Create root redirect to latest run
+        if: always()
+        run: |
+          mkdir -p /tmp/pages-root
+          printf '<html><head><meta http-equiv="refresh" content="0;url=%s/index.html"><title>Redirecting...</title></head><body></body></html>' \
+            "${{ github.run_number }}" > /tmp/pages-root/index.html
+
+      # Deploy this run's full report into /<run_number>/ and keep all previous runs.
+      - name: Deploy report to /<run_number>/
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: output/allure-report
+          destination_dir: ${{ github.run_number }}
+          keep_files: true
+
+      # Keep a shared /history/ at the root of gh-pages so the next run can
+      # pick up trend data without knowing the previous run number.
+      - name: Update shared /history/ on gh-pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: output/allure-report/history
+          destination_dir: history
+          keep_files: true
+
+      # Overwrite root index.html with the redirect to the current run number.
+      - name: Update root redirect
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: /tmp/pages-root
+          destination_dir: .
+          keep_files: true
