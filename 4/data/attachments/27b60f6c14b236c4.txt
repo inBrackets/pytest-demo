@@ -1,0 +1,7 @@
+2026-06-13 04:56:46 DEBUG    filelock: Attempting to acquire lock 140203315980016 on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-13 04:56:46 DEBUG    filelock: Lock 140203315980016 acquired on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-13 04:56:46 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-13 04:56:49 DEBUG    users.pages.login_page: Logging in as 
+2026-06-13 04:56:52 DEBUG    filelock: Attempting to release lock 140203315980016 on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-13 04:56:52 DEBUG    filelock: Lock 140203315980016 released on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-13 04:56:52 DEBUG    contact.pages.contact_page: Navigating to https://automationexercise.com/contact_us

@@ -1,0 +1,2 @@
+2026-06-13 04:58:06 DEBUG    products.pages.product_page: Navigating to https://automationexercise.com/products
+2026-06-13 04:58:09 DEBUG    products.pages.product_page: Searching for Blue Top

@@ -1,0 +1,7 @@
+2026-06-13 04:56:21 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-13 04:56:21 DEBUG    ae_account.api.ae_account_client: ← 200
+2026-06-13 04:56:21 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-13 04:56:25 DEBUG    users.pages.login_page: Logging in as pytest_26a3a5df@test.com
+2026-06-13 04:56:28 DEBUG    products.pages.product_page: Navigating to https://automationexercise.com/products
+2026-06-13 04:56:32 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-13 04:56:33 DEBUG    ae_account.api.ae_account_client: ← 200
