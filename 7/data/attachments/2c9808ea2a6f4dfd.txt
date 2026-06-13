@@ -1,0 +1,1 @@
+2026-06-13 06:21:57 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
