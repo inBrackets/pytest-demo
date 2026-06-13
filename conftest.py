@@ -148,9 +148,7 @@ def browser_context(
 
 
 @pytest.fixture
-def page(
-    browser_context: BrowserContext, request: pytest.FixtureRequest
-) -> Generator[Page, None, None]:
+def page(browser_context: BrowserContext) -> Generator[Page, None, None]:
     pw_page = browser_context.new_page()
     yield pw_page
     pw_page.close()

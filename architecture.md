@@ -30,7 +30,7 @@ The design prioritises extensibility: adding a new API backend requires one new 
 | Failure artefacts     | Screenshot + Playwright trace captured automatically and attached to Allure       |
 | Flaky test retry      | pytest-rerunfailures, 1 retry by default (configurable in `pyproject.toml`)       |
 | Test markers          | `smoke`, `ui`, `api` — registered in `pyproject.toml`                            |
-| Type annotations      | Type hints throughout; no mypy enforcement                                        |
+| Type annotations      | Type hints throughout; mypy strict mode enforced (`[tool.mypy] strict = true`)    |
 | Logging               | Python `logging` module; `log_cli = true`; logs attached to Allure for every test |
 | Response validation   | `BaseApiClient` always calls `model_validate()` on every response before returning |
 
@@ -74,6 +74,7 @@ pytest-demo/
 │   ├── base_page.py            # abstract BasePage
 │   ├── base_api_client.py      # abstract BaseApiClient (Generic[T])
 │   ├── ae_base_client.py       # AE-specific REST base (thin wrapper over BaseApiClient)
+│   ├── ae_models.py            # shared AE response models (AeBaseResponse, AeMessageResponse)
 │   ├── exceptions.py           # ApiError
 │   └── config.py               # Settings (Pydantic BaseSettings)
 │
@@ -277,6 +278,52 @@ ApiError(RuntimeError)
 #   assert exc.value.status_code == 404
 ```
 
+### `core/ae_base_client.py` and `core/ae_models.py` — AE-specific REST layer
+
+The automationexercise.com API does not follow standard HTTP semantics: every endpoint
+returns HTTP 200 regardless of success or failure and embeds the real status code in the
+JSON body as `responseCode`. `AeBaseClient` is a separate base class from `BaseApiClient`
+that handles this quirk.
+
+```
+AeBaseClient (ABC)
+  ├── __init__(context: APIRequestContext, settings: Settings)
+  ├── _base_url → str       ← reads settings.ae_api_base_url; not an abstract property
+  ├── _get(path, params)  → dict[str, Any]
+  ├── _post(path, form)   → dict[str, Any]   # form=None sends an empty form body
+  ├── _put(path, form)    → dict[str, Any]
+  └── _delete(path, form) → dict[str, Any]
+```
+
+All helpers return raw `dict[str, Any]`. Each concrete method in the client subclass
+calls `SomeModel.model_validate(raw)` explicitly, which keeps the return type visible
+in the public API signature rather than hidden in a generic base.
+
+**Shared AE response models** live in `core/ae_models.py` — not in domain model files:
+
+```python
+# core/ae_models.py
+class AeBaseResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    response_code: int = Field(alias="responseCode")
+
+class AeMessageResponse(AeBaseResponse):
+    message: str
+```
+
+`AeBaseResponse` and `AeMessageResponse` are shared across both `ae_account` and
+`ae_products`. Domain model files (`ae_account/models/`, `ae_products/models/`) import
+`AeBaseResponse` from `core.ae_models` for inheritance and define their own
+feature-specific response types there. Client files (`ae_account/api/`, `ae_products/api/`)
+import `AeMessageResponse` directly from `core.ae_models` — not through the domain model
+re-export — keeping the import chain unambiguous.
+
+```python
+# ae_account/api/ae_account_client.py — correct import pattern
+from ae_account.models.ae_account_model import AeCreateAccountRequest, AeUserDetailResponse
+from core.ae_models import AeMessageResponse   # shared type from core, not re-exported
+```
+
 ### `core/base_page.py` — Abstraction, Liskov, Interface Segregation
 
 ```
@@ -287,10 +334,16 @@ BasePage (ABC)
   │     calls _page.goto(self.url), then calls is_loaded() and returns self.
   │     safe for chaining: LoginPage(...).navigate().login(...) only runs after load.
   ├── url (abstract property)        ← subclass computes full URL, typically from _settings.ui_base_url
-  └── is_loaded() → None (abstract)
-        subclass calls expect(locator).to_be_visible() on a stable landmark element.
-        Playwright's built-in retry+timeout handles the wait — do not use time.sleep().
-        Raises AssertionError/TimeoutError if the element never appears; navigate() propagates it.
+  ├── current_url → str              ← public read-only view of the browser's current URL
+  │     tests assert on this instead of accessing _page.url directly
+  ├── is_loaded() → None (abstract)
+  │     subclass calls expect(locator).to_be_visible() on a stable landmark element.
+  │     Playwright's built-in retry+timeout handles the wait — do not use time.sleep().
+  │     Raises AssertionError/TimeoutError if the element never appears; navigate() propagates it.
+  └── _click_and_navigate(locator, target_url) → None
+        clicks the locator, waits for domcontentloaded, falls back to goto() if the URL
+        didn't change, then always calls _dismiss_consent_banner() regardless of which
+        navigation path was taken.
 ```
 
 #### Locator fields — mandatory convention
@@ -480,7 +533,7 @@ def browser_context(browser, auth_state, trace_path, settings):
 # Override pytest-playwright's page. Just creates and closes the page;
 # screenshot capture is handled by pytest_runtest_makereport (see below).
 @pytest.fixture
-def page(browser_context, request):
+def page(browser_context):
     pw_page = browser_context.new_page()
     yield pw_page
     pw_page.close()
@@ -642,6 +695,25 @@ class TestGetUser:
         assert user.name
 ```
 
+### Asserting on the browser URL
+
+Use `page_object.current_url` — never access `page_object._page.url` or
+`page_object._settings` directly from a test. Page object internals are private by
+convention (single underscore); tests that reach into them break encapsulation and
+become fragile if the implementation changes.
+
+```python
+# CORRECT
+home_page.go_to_test_cases()
+assert "/test_cases" in home_page.current_url.split("#")[0]
+
+# WRONG — leaks private internals
+assert "/test_cases" in home_page._page.url.split("#")[0]
+```
+
+When a test needs to assert against a configured value (e.g. `ui_base_url`), request
+the `settings` fixture explicitly rather than reading `page_object._settings`.
+
 ---
 
 ## Allure Step Decoration
@@ -662,6 +734,25 @@ def get(self, user_id: int) -> UserResponse: ...
 
 Each method applies `@allure.step` explicitly. The decorator is not inheritable —
 it must be applied at the point of definition in each subclass method.
+
+**Do not mix `@allure.step` with `with allure.step()` inside the same method.** The
+decorator already wraps the entire method body in a step; adding a `with allure.step()`
+block inside creates a redundant nested step in the report. Use one or the other:
+
+```python
+# CORRECT — decorator only
+@allure.step("Navigate to product details for product {product_id}")
+def navigate_to(self, product_id: int) -> Self:
+    self._page.goto(...)
+    self.is_loaded()
+    return self
+
+# WRONG — decorator + inner with creates a duplicate nested step
+@allure.step("Navigate to product details for product {product_id}")
+def navigate_to(self, product_id: int) -> Self:
+    with allure.step(f"Navigate to /product_details/{product_id}"):  # redundant
+        self._page.goto(...)
+```
 
 ---
 

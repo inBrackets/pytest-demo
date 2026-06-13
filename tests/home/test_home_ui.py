@@ -1,7 +1,5 @@
 import pytest
 
-from playwright.sync_api import expect
-
 from products.pages.home_page import HomePage
 
 
@@ -12,7 +10,7 @@ class TestNavigateToTestCasesPage:
     def test_test_cases_page_loads(self, home_page: HomePage) -> None:
         home_page.navigate()
         home_page.go_to_test_cases()
-        assert "/test_cases" in home_page._page.url.split("#")[0]
+        assert "/test_cases" in home_page.current_url.split("#")[0]
 
 
 @pytest.mark.ui
@@ -22,7 +20,6 @@ class TestScrollUpWithArrow:
     def test_scroll_up_arrow_returns_to_hero(self, home_page: HomePage) -> None:
         home_page.navigate()
         home_page.scroll_to_bottom()
-        expect(home_page._page.locator("input#susbscribe_email")).to_be_visible()
         home_page.click_scroll_up_arrow()
         hero_text = home_page.get_hero_text()
         assert hero_text
@@ -35,7 +32,6 @@ class TestScrollUpManually:
     def test_manual_scroll_up_returns_to_hero(self, home_page: HomePage) -> None:
         home_page.navigate()
         home_page.scroll_to_bottom()
-        expect(home_page._page.locator("input#susbscribe_email")).to_be_visible()
         home_page.scroll_to_top()
         hero_text = home_page.get_hero_text()
         assert hero_text

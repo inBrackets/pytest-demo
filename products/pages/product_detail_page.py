@@ -83,14 +83,13 @@ class ProductDetailPage(BasePage):
 
     @allure.step("Navigate to product details for product {product_id}")
     def navigate_to(self, product_id: int) -> Self:
-        with allure.step(f"Navigate to /product_details/{product_id}"):
-            self._page.goto(
-                f"{self._settings.ui_base_url}/product_details/{product_id}",
-                wait_until="domcontentloaded",
-            )
-            self._dismiss_consent_banner()
-            self.is_loaded()
-            return self
+        self._page.goto(
+            f"{self._settings.ui_base_url}/product_details/{product_id}",
+            wait_until="domcontentloaded",
+        )
+        self._dismiss_consent_banner()
+        self.is_loaded()
+        return self
 
     @allure.step("Get product name")
     def get_name(self) -> str:

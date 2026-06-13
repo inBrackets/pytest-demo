@@ -21,6 +21,10 @@ class BasePage(ABC):
     @abstractmethod
     def is_loaded(self) -> None: ...
 
+    @property
+    def current_url(self) -> str:
+        return self._page.url
+
     def navigate(self) -> Self:
         with allure.step(f"Navigate to {self.url}"):
             self._logger.debug("Navigating to %s", self.url)
@@ -34,7 +38,7 @@ class BasePage(ABC):
         self._page.wait_for_load_state("domcontentloaded")
         if self._page.url.split("?")[0].rstrip("/") != target_url.rstrip("/"):
             self._page.goto(target_url, wait_until="domcontentloaded")
-            self._dismiss_consent_banner()
+        self._dismiss_consent_banner()
 
     def _dismiss_consent_banner(self) -> None:
         try:

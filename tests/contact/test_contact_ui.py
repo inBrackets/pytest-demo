@@ -1,6 +1,7 @@
 import pytest
 
 from contact.pages.contact_page import ContactPage
+from core.config import Settings
 
 
 @pytest.mark.ui
@@ -17,7 +18,9 @@ class TestContactUsForm:
         )
         contact_page.is_success_visible()
 
-    def test_success_allows_return_to_home(self, contact_page: ContactPage) -> None:
+    def test_success_allows_return_to_home(
+        self, contact_page: ContactPage, settings: Settings
+    ) -> None:
         contact_page.navigate()
         contact_page.submit(
             name="Pytest Tester",
@@ -27,5 +30,4 @@ class TestContactUsForm:
         )
         contact_page.is_success_visible()
         contact_page.go_home()
-        actual_url = contact_page._page.url.split("#")[0].rstrip("/")
-        assert actual_url == contact_page._settings.ui_base_url.rstrip("/")
+        assert contact_page.current_url.split("#")[0].rstrip("/") == settings.ui_base_url.rstrip("/")

@@ -1,11 +1,8 @@
 import allure
 
-from ae_products.models.ae_products_model import (
-    AeBrandsResponse,
-    AeMessageResponse,
-    AeProductsResponse,
-)
+from ae_products.models.ae_products_model import AeBrandsResponse, AeProductsResponse
 from core.ae_base_client import AeBaseClient
+from core.ae_models import AeMessageResponse
 
 
 class AeProductsClient(AeBaseClient):

@@ -1,11 +1,8 @@
 import allure
 
-from ae_account.models.ae_account_model import (
-    AeCreateAccountRequest,
-    AeMessageResponse,
-    AeUserDetailResponse,
-)
+from ae_account.models.ae_account_model import AeCreateAccountRequest, AeUserDetailResponse
 from core.ae_base_client import AeBaseClient
+from core.ae_models import AeMessageResponse
 
 
 class AeAccountClient(AeBaseClient):
