@@ -136,6 +136,7 @@ pytest-demo/
     │   └── test_home_ui.py
     ├── checkout/
     │   ├── conftest.py
+    │   ├── helpers.py              # non-fixture helpers shared across checkout tests
     │   └── test_checkout_ui.py
     ├── contact/
     │   ├── conftest.py
@@ -192,14 +193,20 @@ BaseApiClient(ABC, Generic[T])
 
 # Subclass must set _response_model as a class variable.
 # Generic[T] is erased at runtime — the type cannot be inferred automatically.
+# Both base_url and endpoint are abstract properties — concrete clients must
+# implement them as @property methods, not plain class attributes. Assigning a
+# class attribute over an abstract property is a mypy strict [override] error.
 # Subclasses expose a domain-specific PUBLIC API; tests never call _get/_post directly.
 class UserApiClient(BaseApiClient[UserResponse]):
-    endpoint = "/users"
     _response_model = UserResponse        # ← required; drives model_validate in base
 
     @property
     def base_url(self) -> str:
         return self._settings.api_base_url
+
+    @property
+    def endpoint(self) -> str:
+        return "/users"
 
     # Public domain API — wraps the protected HTTP helpers:
     def get(self, user_id: int) -> UserResponse:
@@ -219,12 +226,15 @@ class UserApiClient(BaseApiClient[UserResponse]):
 
 # PostApiClient follows the same pattern.
 class PostApiClient(BaseApiClient[PostResponse]):
-    endpoint = "/posts"
     _response_model = PostResponse
 
     @property
     def base_url(self) -> str:
         return self._settings.api_base_url
+
+    @property
+    def endpoint(self) -> str:
+        return "/posts"
 
     def get(self, post_id: int) -> PostResponse: ...
     def get_all(self) -> list[PostResponse]: ...
@@ -504,12 +514,15 @@ def live_account(_ae_api_context, settings) -> Generator[dict[str, str], None, N
 def temp_account(api_context, settings) -> Generator[dict[str, str], None, None]:
     yield from _account_lifecycle(AeAccountClient(context=api_context, settings=settings))
 
+# Module-level constant — one place to change the shared test password.
+_TEST_PASSWORD = "Test1234!"
+
 # _account_lifecycle: helper (not a fixture) that creates an account before
 # yield and deletes it in a try/finally so cleanup always runs even if the
 # test itself deletes the account first.
 def _account_lifecycle(client):
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
-    password = "Test1234!"
+    password = _TEST_PASSWORD
     client.create_account(AeCreateAccountRequest.make(email=email, password=password))
     try:
         yield {"email": email, "password": password}
@@ -525,7 +538,7 @@ def _account_lifecycle(client):
 @pytest.fixture
 def disposable_credentials(api_context, settings) -> Generator[dict[str, str], None, None]:
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
-    creds = {"name": "Pytest User", "email": email, "password": "Test1234!"}
+    creds = {"name": "Pytest User", "email": email, "password": _TEST_PASSWORD}
     yield creds
     try:
         AeAccountClient(api_context, settings).delete_account(
@@ -692,20 +705,79 @@ def unauthenticated_page(browser, settings, tmp_path, request):
 @pytest.fixture
 def user_client(api_context, settings) -> UserApiClient:
     return UserApiClient(context=api_context, settings=settings)
-
-@pytest.fixture
-def login_page(page, settings) -> LoginPage:
-    return LoginPage(page=page, settings=settings)
 ```
 
-`login_page` above uses the pre-authenticated `page` fixture — suitable for tests that
-verify post-login UI behaviour. Tests that exercise the login form itself (credential
-validation, redirect on success, error messaging) must start unauthenticated and use
-`unauthenticated_page` from the root conftest instead.
+Feature conftests declare only fixtures — thin wrappers that construct a page object or
+client with the right fixtures injected. Tests that need a `LoginPage` construct it
+directly: `LoginPage(page=unauthenticated_page, settings=settings).navigate()`. Adding a
+`login_page` fixture here would hide the intent and create an unused symbol whenever a
+test file already builds the page inline.
+
+Tests that exercise the login form itself (credential validation, redirect on success,
+error messaging) must start unauthenticated and use `unauthenticated_page` from the root
+conftest instead of the pre-authenticated `page`.
 
 `unauthenticated_page` bypasses `auth_state` so the session cookie is absent.
 Because it owns its context, it manages its own tracing inline rather than delegating
 to `attach_trace_on_failure` (which only covers contexts created via the root `browser_context`).
+
+### Test helper functions — use `helpers.py`, not `conftest.py`
+
+Non-fixture helper functions shared within a test folder belong in a `helpers.py` module,
+not in `conftest.py`. Conftest files are collected by pytest's plugin mechanism and are not
+intended to be imported directly by test files. Importing from `conftest.py` works in
+practice but is an antipattern that can cause double-collection issues and fragile path
+coupling.
+
+```python
+# tests/checkout/helpers.py
+from playwright.sync_api import Page
+from core.config import Settings
+from products.pages.cart_page import CartPage
+from products.pages.product_page import ProductPage
+
+def add_product_and_checkout(page: Page, settings: Settings) -> None:
+    """Add first product to cart and proceed to checkout page."""
+    product_pg = ProductPage(page=page, settings=settings)
+    product_pg.navigate()
+    product_pg.add_to_cart(index=0)
+    product_pg.view_cart_from_modal()
+    CartPage(page=page, settings=settings).proceed_to_checkout()
+
+# tests/checkout/test_checkout_ui.py
+from tests.checkout.helpers import add_product_and_checkout  # ← import from helpers, not conftest
+```
+
+`tests/checkout/conftest.py` keeps only fixture definitions (`registered_page`, etc.).
+`registered_page` is a regular fixture (not a generator) because it has no teardown — it
+creates an account via the API, logs in, and returns the page. Account cleanup is handled
+entirely by the `disposable_credentials` fixture:
+
+```python
+@pytest.fixture
+def registered_page(
+    unauthenticated_page: Page,
+    settings: Settings,
+    disposable_credentials: dict[str, str],
+    api_context: APIRequestContext,
+) -> Page:
+    AeAccountClient(api_context, settings).create_account(
+        AeCreateAccountRequest.make(
+            name=disposable_credentials["name"],
+            email=disposable_credentials["email"],
+            password=disposable_credentials["password"],
+        )
+    )
+    LoginPage(unauthenticated_page, settings).navigate().login(
+        username=disposable_credentials["email"],
+        password=disposable_credentials["password"],
+    )
+    return unauthenticated_page
+```
+
+Use `yield` only when the fixture has cleanup code after the yield. A fixture with nothing
+after `yield` is functionally identical to `return`, but the `Generator` return type
+annotation is misleading.
 
 ---
 
@@ -924,12 +996,15 @@ To add a new API target (e.g. `reqres.in`):
 
    class ReqresUserClient(BaseApiClient[ReqresUserResponse]):
        _BASE_URL = "https://reqres.in"   # class constant — no Settings change needed
-       endpoint = "/api/users"
        _response_model = ReqresUserResponse
 
        @property
        def base_url(self) -> str:
            return self._BASE_URL
+
+       @property
+       def endpoint(self) -> str:
+           return "/api/users"
 
        # Public domain API — required; tests call these, not the protected _get/_post helpers
        def get(self, user_id: int) -> ReqresUserResponse:

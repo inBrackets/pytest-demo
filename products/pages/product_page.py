@@ -84,7 +84,7 @@ class ProductPage(BasePage):
 
     @allure.step("Click brand '{brand_name}' in sidebar")
     def click_brand(self, brand_name: str) -> None:
-        self._page.locator(f".brands-name a:has-text('{brand_name}')").click()
+        self._page.locator(".brands-name a", has_text=brand_name).click()
         self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Click category '{category}' then subcategory '{subcategory}'")

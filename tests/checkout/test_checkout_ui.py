@@ -9,7 +9,7 @@ from products.pages.product_page import ProductPage
 from users.pages.login_page import LoginPage
 from users.pages.signup_page import SignupPage
 
-from tests.checkout.conftest import add_product_and_checkout
+from tests.checkout.helpers import add_product_and_checkout
 
 
 @pytest.mark.ui
