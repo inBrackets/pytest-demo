@@ -1,0 +1,2 @@
+2026-06-13 05:49:38 DEBUG    posts.api.post_client: GET https://jsonplaceholder.typicode.com/posts/9999
+2026-06-13 05:49:38 DEBUG    posts.api.post_client: ← 404
