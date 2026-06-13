@@ -51,6 +51,11 @@ def settings() -> Settings:
 
 
 @pytest.fixture(scope="session")
+def browser_type_launch_args(browser_type_launch_args: dict, settings: Settings) -> dict:
+    return {**browser_type_launch_args, "headless": settings.browser_headless}
+
+
+@pytest.fixture(scope="session")
 def auth_state(
     browser: Browser,
     settings: Settings,
