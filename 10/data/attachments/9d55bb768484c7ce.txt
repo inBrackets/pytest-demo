@@ -1,0 +1,2 @@
+2026-06-13 17:44:59 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-13 17:45:03 DEBUG    users.pages.login_page: Logging in as wrong@example.com
