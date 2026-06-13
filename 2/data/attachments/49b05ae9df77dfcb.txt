@@ -1,0 +1,2 @@
+2026-06-13 04:21:33 DEBUG    ae_products.api.ae_products_client: GET https://automationexercise.com/api/productsList
+2026-06-13 04:21:34 DEBUG    ae_products.api.ae_products_client: ← 200
