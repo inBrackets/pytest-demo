@@ -13,6 +13,8 @@ from ae_account.models.ae_account_model import AeCreateAccountRequest
 from core.config import Settings
 from users.pages.login_page import LoginPage
 
+_TEST_PASSWORD = "Test1234!"
+
 
 def pytest_configure(config: pytest.Config) -> None:
     output_dir = config.rootpath / "output"
@@ -73,7 +75,7 @@ def _ae_api_context(
 
 def _account_lifecycle(client: AeAccountClient) -> Generator[dict[str, str], None, None]:
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
-    password = "Test1234!"
+    password = _TEST_PASSWORD
     client.create_account(AeCreateAccountRequest.make(email=email, password=password))
     try:
         yield {"email": email, "password": password}
@@ -183,7 +185,7 @@ def disposable_credentials(
     api_context: APIRequestContext, settings: Settings
 ) -> Generator[dict[str, str], None, None]:
     email = f"pytest_{uuid.uuid4().hex[:8]}@test.com"
-    creds: dict[str, str] = {"name": "Pytest User", "email": email, "password": "Test1234!"}
+    creds: dict[str, str] = {"name": "Pytest User", "email": email, "password": _TEST_PASSWORD}
     yield creds
     try:
         AeAccountClient(api_context, settings).delete_account(

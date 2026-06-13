@@ -40,10 +40,11 @@ class TestRegisterUser:
             email=disposable_credentials["email"],
         )
         signup = SignupPage(page=unauthenticated_page, settings=settings)
+        signup.is_loaded()
         signup.fill_account_info(password=disposable_credentials["password"])
         signup.fill_address()
         signup.create_account()
-        assert "account-created" in unauthenticated_page.url or "ACCOUNT CREATED" in unauthenticated_page.content().upper()
+        assert "account_created" in unauthenticated_page.url
 
 
 @pytest.mark.ui

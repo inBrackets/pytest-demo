@@ -5,12 +5,15 @@ from users.models.user_model import CreateUserRequest, UserResponse
 
 
 class UserApiClient(BaseApiClient[UserResponse]):
-    endpoint = "/users"
     _response_model = UserResponse
 
     @property
     def base_url(self) -> str:
         return self._settings.api_base_url
+
+    @property
+    def endpoint(self) -> str:
+        return "/users"
 
     @allure.step("GET /users/{user_id}")
     def get(self, user_id: int) -> UserResponse:

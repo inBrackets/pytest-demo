@@ -5,12 +5,15 @@ from posts.models.post_model import CreatePostRequest, PostResponse
 
 
 class PostApiClient(BaseApiClient[PostResponse]):
-    endpoint = "/posts"
     _response_model = PostResponse
 
     @property
     def base_url(self) -> str:
         return self._settings.api_base_url
+
+    @property
+    def endpoint(self) -> str:
+        return "/posts"
 
     @allure.step("GET /posts/{post_id}")
     def get(self, post_id: int) -> PostResponse:
