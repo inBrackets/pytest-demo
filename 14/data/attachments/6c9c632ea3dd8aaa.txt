@@ -1,0 +1,1 @@
+2026-06-13 19:40:49 DEBUG    products.pages.cart_page: Navigating to https://automationexercise.com/view_cart
