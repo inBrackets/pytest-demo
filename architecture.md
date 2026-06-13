@@ -21,7 +21,7 @@ The design prioritises extensibility: adding a new API backend requires one new 
 | UI target             | https://automationexercise.com                                                    |
 | API target            | https://jsonplaceholder.typicode.com/                                             |
 | Folder layout         | Feature-based                                                                     |
-| Browser               | Chromium; headless by default; `--headed` CLI flag to override                    |
+| Browser               | Chromium; headless controlled by `BROWSER_HEADLESS` in `.env`; `--headed` CLI flag also works |
 | Parallelism           | pytest-xdist from day one; function-scoped browser fixtures                       |
 | Test data             | Pydantic model factories (builder classmethods with sensible defaults)            |
 | UI auth               | Session storage snapshot fixture — login once per session, reuse across tests     |
@@ -38,70 +38,113 @@ The design prioritises extensibility: adding a new API backend requires one new 
 
 ## Project Structure
 
+### Source / test separation — mandatory convention
+
+**Source code and test code live in separate top-level directories.**
+`tests/` contains only `conftest.py` files and `test_*.py` files — no page objects, no API
+clients, no models. All framework source (page objects, API clients, models, config) lives
+in the feature packages at the project root. pytest discovers tests exclusively from `tests/`
+(`testpaths = ["tests"]` in `pyproject.toml`), while `pythonpath = ["."]` makes every
+top-level package importable from test files.
+
+**All generated output goes under `output/`.** Allure results, the generated HTML report,
+and per-worker log files are written to subdirectories of `output/` — never to the project
+root or to `tests/`. The paths are set to absolute locations in `pytest_configure` so they
+are correct regardless of the working directory (PyCharm, terminal, CI all produce the same
+layout). `output/` is fully gitignored; only the empty `.gitkeep` markers are committed.
+
 ```
 pytest-demo/
 ├── pyproject.toml              # uv / pytest / allure / dependency config
 ├── .env                        # local secrets and overrides (gitignored)
 ├── .env.example                # template checked into source control
-├── .gitignore                  # excludes .env, allure-results/, logs/, __pycache__/, .venv/
-├── logs/
-│   └── .gitkeep                # ensures logs/ exists; pytest needs it for log_file
+├── .gitignore                  # excludes output/, .env, .venv/, __pycache__/
 ├── architecture.md             # this file
-├── conftest.py                 # settings, auth_state, browser_context, page, api_context,
-│                                 # trace_path, attach_trace_on_failure, makereport hook,
-│                                 # pytest_configure (per-worker log_file under xdist)
+├── conftest.py                 # root fixtures + hooks (see Fixture Design)
+│
+├── output/                     # ALL generated artifacts — gitignored
+│   ├── allure-results/         # raw JSON/attachment files written during test run
+│   │   └── .gitkeep
+│   ├── allure-report/          # generated HTML report (allure generate …)
+│   └── logs/
+│       ├── .gitkeep
+│       └── test.log            # debug log; test_gw0.log … under xdist
 │
 ├── core/                       # framework internals — no tests here
-│   ├── __init__.py
 │   ├── base_page.py            # abstract BasePage
 │   ├── base_api_client.py      # abstract BaseApiClient (Generic[T])
+│   ├── ae_base_client.py       # AE-specific REST base (thin wrapper over BaseApiClient)
 │   ├── exceptions.py           # ApiError
-│   └── config.py               # Settings (Pydantic BaseSettings singleton)
+│   └── config.py               # Settings (Pydantic BaseSettings)
 │
-├── models/                     # shared Pydantic base
-│   ├── __init__.py
-│   └── base_model.py           # AppBaseModel — shared model config
+├── models/
+│   └── base_model.py           # AppBaseModel — shared alias + camelCase config
 │
-├── users/                      # JSONPlaceholder /users + AE account/login
-│   ├── __init__.py
-│   ├── conftest.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── user_model.py       # CreateUserRequest, UserResponse
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── user_client.py      # UserApiClient(BaseApiClient)
-│   ├── pages/
-│   │   ├── __init__.py
-│   │   └── login_page.py       # LoginPage(BasePage)
-│   └── tests/
-│       ├── __init__.py
-│       ├── test_user_api.py
-│       └── test_login_ui.py
+├── users/                      # JSONPlaceholder /users + AE login/register UI
+│   ├── api/user_client.py      # UserApiClient(BaseApiClient)
+│   ├── models/user_model.py    # CreateUserRequest, UserResponse
+│   └── pages/
+│       ├── login_page.py       # LoginPage(BasePage)
+│       └── signup_page.py      # SignupPage(BasePage)
 │
 ├── posts/                      # JSONPlaceholder /posts
-│   ├── __init__.py
-│   ├── conftest.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── post_model.py       # CreatePostRequest, PostResponse
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── post_client.py      # PostApiClient(BaseApiClient)
-│   └── tests/
-│       ├── __init__.py
-│       └── test_post_api.py
+│   ├── api/post_client.py      # PostApiClient(BaseApiClient)
+│   └── models/post_model.py    # CreatePostRequest, PostResponse
 │
-└── products/                   # automationexercise.com product catalogue
-    ├── __init__.py
-    ├── conftest.py
-    ├── pages/
-    │   ├── __init__.py
-    │   ├── home_page.py        # HomePage(BasePage)
-    │   └── product_page.py     # ProductPage(BasePage)
-    └── tests/
-        ├── __init__.py
-        └── test_product_ui.py
+├── products/                   # AE product catalogue UI
+│   └── pages/
+│       ├── home_page.py        # HomePage(BasePage)
+│       ├── product_page.py     # ProductPage(BasePage)
+│       ├── product_detail_page.py
+│       └── cart_page.py        # CartPage(BasePage)
+│
+├── checkout/
+│   └── pages/
+│       ├── checkout_page.py    # CheckoutPage(BasePage)
+│       └── payment_page.py     # PaymentPage(BasePage)
+│
+├── contact/
+│   └── pages/contact_page.py  # ContactPage(BasePage)
+│
+├── ae_account/                 # AE REST account API
+│   ├── api/ae_account_client.py
+│   └── models/ae_account_model.py
+│
+├── ae_products/                # AE REST products API
+│   ├── api/ae_products_client.py
+│   └── models/ae_products_model.py
+│
+└── tests/                      # TEST SOURCE ONLY — no framework code here
+    ├── users/
+    │   ├── conftest.py
+    │   ├── test_user_api.py
+    │   ├── test_login_ui.py
+    │   └── test_register_ui.py
+    ├── posts/
+    │   ├── conftest.py
+    │   └── test_post_api.py
+    ├── products/
+    │   ├── conftest.py
+    │   ├── test_product_ui.py
+    │   ├── test_product_detail_ui.py
+    │   ├── test_cart_ui.py
+    │   ├── test_categories_brands_ui.py
+    │   └── test_subscription_ui.py
+    ├── home/
+    │   ├── conftest.py
+    │   └── test_home_ui.py
+    ├── checkout/
+    │   ├── conftest.py
+    │   └── test_checkout_ui.py
+    ├── contact/
+    │   ├── conftest.py
+    │   └── test_contact_ui.py
+    ├── ae_account/
+    │   ├── conftest.py
+    │   └── test_ae_account_api.py
+    └── ae_products/
+        ├── conftest.py
+        └── test_ae_products_api.py
 ```
 
 ### `.env.example` content
@@ -114,6 +157,7 @@ AE_PASSWORD=your_password
 # --- Optional overrides (defaults shown) ---
 API_BASE_URL=https://jsonplaceholder.typicode.com
 UI_BASE_URL=https://automationexercise.com
+BROWSER_HEADLESS=true    # set to false to open a visible browser window
 BROWSER_TIMEOUT=30000
 API_TIMEOUT=10000
 ```
@@ -342,12 +386,13 @@ CreatePostRequest(AppBaseModel)
 
 ```
 Settings(pydantic_settings.BaseSettings)
-  ├── api_base_url: str      = "https://jsonplaceholder.typicode.com"
-  ├── ui_base_url: str       = "https://automationexercise.com"
-  ├── browser_timeout: int   = 30_000   ← ms; passed to context.set_default_timeout()
-  ├── api_timeout: int       = 10_000   ← ms; passed to APIRequestContext timeout option
-  ├── ae_username: str                  ← required; no default — must be set in .env
-  ├── ae_password: SecretStr            ← required; no default — SecretStr hides it from logs
+  ├── api_base_url: str        = "https://jsonplaceholder.typicode.com"
+  ├── ui_base_url: str         = "https://automationexercise.com"
+  ├── browser_headless: bool   = True    ← False opens a visible browser window
+  ├── browser_timeout: int     = 30_000  ← ms; passed to context.set_default_timeout()
+  ├── api_timeout: int         = 10_000  ← ms; passed to APIRequestContext timeout option
+  ├── ae_username: str                   ← required; no default — must be set in .env
+  ├── ae_password: SecretStr             ← required; no default — SecretStr hides it from logs
   └── model_config = SettingsConfigDict(env_file=".env")
 ```
 
@@ -356,9 +401,10 @@ Settings(pydantic_settings.BaseSettings)
 rather than silently passing empty credentials to the login page and producing a confusing
 UI failure deep inside the test run.
 
-`browser_headless` is intentionally absent from `Settings` — headless/headed mode is
-controlled exclusively by pytest-playwright's native `--headed` CLI flag. Duplicating
-it here would create dead config with no effect on the actual browser launch.
+`browser_headless` is read from `.env` as `BROWSER_HEADLESS=false` to show the browser
+during local development. The `browser_type_launch_args` session fixture injects this
+value into pytest-playwright's launch arguments. The `--headed` CLI flag also works and
+takes precedence (pytest-playwright merges it with the fixture args).
 
 Tests receive `Settings` via fixture injection; they never read `os.environ` directly.
 `browser_context` applies `context.set_default_timeout(settings.browser_timeout)` after creation.
@@ -372,10 +418,18 @@ Tests receive `Settings` via fixture injection; they never read `os.environ` dir
 
 `pytest-playwright` already provides `playwright`, `browser`, `browser_context`, and `page`
 fixtures. Our root `conftest.py` **overrides** `browser_context` and `page` (same names) to
-inject auth state and start tracing. The built-in `playwright` and low-level `browser`
-fixtures are used as-is; we do not redeclare them. The `--headed` flag is provided natively
-by `pytest-playwright` (`--headed` CLI option and `PLAYWRIGHT_HEADLESS` env var) so no
-custom `pytest_addoption` hook is needed.
+inject auth state and start tracing, and adds `browser_type_launch_args` to wire the
+`BROWSER_HEADLESS` setting into the browser launch. The built-in `playwright` and low-level
+`browser` fixtures are used as-is; we do not redeclare them.
+
+```python
+# Injects the BROWSER_HEADLESS setting into playwright's launch arguments.
+# The spread **browser_type_launch_args preserves any other flags already present
+# (e.g. --headed CLI flag, slow_mo, etc.) so both mechanisms work together.
+@pytest.fixture(scope="session")
+def browser_type_launch_args(browser_type_launch_args: dict, settings: Settings) -> dict:
+    return {**browser_type_launch_args, "headless": settings.browser_headless}
+```
 
 ### Root `conftest.py` (parallel-safe with pytest-xdist)
 
@@ -423,17 +477,13 @@ def browser_context(browser, auth_state, trace_path, settings):
     context.tracing.stop(path=str(trace_path))   # explicit path required
     context.close()
 
-# Override pytest-playwright's page.
-# Screenshot is captured HERE — before page.close() — so the page is still open.
-# This is the only correct place; a separate autouse fixture would read a closed page.
+# Override pytest-playwright's page. Just creates and closes the page;
+# screenshot capture is handled by pytest_runtest_makereport (see below).
 @pytest.fixture
 def page(browser_context, request):
-    page = browser_context.new_page()
-    yield page
-    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        allure.attach(page.screenshot(full_page=True), name="screenshot",
-                      attachment_type=allure.attachment_type.PNG)
-    page.close()
+    pw_page = browser_context.new_page()
+    yield pw_page
+    pw_page.close()
 
 # api_context must be disposed after each test to release the underlying connection.
 @pytest.fixture
@@ -453,11 +503,23 @@ def pytest_configure(config):
     if worker_id:
         config.option.log_file = f"logs/test_{worker_id}.log"
 
-# hookwrapper=True is deprecated since pytest 7.2; use wrapper=True instead.
+# Sets rep_call/rep_setup/rep_teardown on the item for fixture teardown checks,
+# and captures a screenshot directly into the Allure test result on call-phase failure.
+# Screenshot is taken here — not in the page fixture teardown — because allure-pytest
+# keeps the test result open during the call phase. Attachments added in fixture teardown
+# land in the fixture's container (shown only under "Tear Down"), not in the test result.
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
     rep = yield
     setattr(item, f"rep_{rep.when}", rep)
+    if rep.when == "call" and rep.failed:
+        pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
+        if pw_page:
+            try:
+                allure.attach(pw_page.screenshot(), name="screenshot",
+                              attachment_type=allure.attachment_type.PNG)
+            except Exception:
+                pass
     return rep
 
 # Attaches the Playwright trace after test failure.
@@ -523,16 +585,20 @@ to `attach_trace_on_failure` (which only covers contexts created via the root `b
 
 ## Failure Artefacts
 
-Two separate mechanisms handle failure capture, split by a critical timing constraint:
+Two separate mechanisms handle failure capture, each timed to when its data is available:
 
-**Screenshot** — captured inside the `page` fixture teardown, **before** `page.close()`.
-A separate autouse fixture cannot do this because by the time it runs teardown, `page` has
-already been closed and `page.screenshot()` would throw.
+**Screenshot** — captured inside `pytest_runtest_makereport` during the `"call"` phase,
+immediately after the test body raises. At this point allure-pytest's test result container
+is still open, so `allure.attach()` adds the image directly to the test result's
+`attachments` list. Capturing in fixture teardown instead would attach to the fixture's
+container (`afters`), making the screenshot appear only under the collapsed "Tear Down"
+section — not at the top of the report where it is most useful. `item.funcargs` still
+holds all live fixture objects during the call phase so `page.screenshot()` works.
 
 **Trace** — attached by `attach_trace_on_failure` (autouse), which runs after `browser_context`
 teardown has already written `trace.zip` to `trace_path`. This ordering is safe because the
-autouse fixture (no dependencies) is set up before the explicitly-requested fixtures, and
-therefore tears down after them (pytest LIFO).
+autouse fixture (no dependencies on browser fixtures) is set up before the explicitly-requested
+fixtures, and therefore tears down after them (pytest LIFO).
 
 Both rely on `request.node.rep_call.failed`, which is set by the `pytest_runtest_makereport`
 hook. Without this hook the attribute is absent and both captures silently no-op.
@@ -603,9 +669,31 @@ it must be applied at the point of definition in each subclass method.
 
 `BaseApiClient` and `BasePage` each hold a module-level `logging.getLogger(__name__)`.
 Every HTTP request/response and every `navigate()` call emits a `DEBUG` line.
-`pyproject.toml` enables `log_cli = true` so logs appear in the terminal during local runs
-and are captured by pytest. `allure-pytest` attaches captured logs to every test's report
-automatically — pass and fail alike — with no extra fixture code required.
+
+pytest routes log records to three independent sinks, each with its own format key:
+
+| Sink | Level key | Format key | Controls |
+|---|---|---|---|
+| Console (live) | `log_cli_level` | `log_cli_format` | Terminal output during the run |
+| File | `log_file_level` | `log_file_format` | `output/logs/test.log` |
+| In-memory capture | *(inherited)* | `log_format` | Allure log attachment, pytest report section |
+
+All three format strings use `%(asctime)s` so every log line carries a timestamp.
+`log_date_format` is a shared key that controls the `%(asctime)s` rendering for all sinks:
+
+```toml
+log_format      = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_cli_format  = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_file_format = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+```
+
+`log_format` (the in-memory sink) must be set explicitly — it is not a fallback for
+`log_cli_format` or `log_file_format`. Omitting it produces Allure log attachments without
+timestamps even when the other two sinks are correctly formatted.
+
+`allure-pytest` attaches in-memory captured logs to every test's report automatically —
+pass and fail alike — with no extra fixture code required.
 
 ---
 
@@ -629,22 +717,28 @@ dependencies = [
 [tool.pytest.ini_options]
 # -n auto and --reruns are mutually exclusive; omit both from addopts.
 # Run via: uv run pytest -n auto  OR  uv run pytest --reruns 1 --reruns-delay 2
-addopts       = "--alluredir=allure-results"
-testpaths     = ["users", "posts", "products"]
+addopts        = ""
+testpaths      = ["tests"]
+pythonpath     = ["."]
 log_cli        = true
 log_cli_level  = "INFO"           # concise terminal output; avoids flood in parallel runs
-log_file       = "logs/test.log"   # default; pytest_configure overrides to logs/test_gw0.log etc. under xdist
 log_file_level = "DEBUG"          # full request/response detail in file for post-mortem
+# Three format keys needed — one per sink (console, file, Allure in-memory capture):
+log_format      = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_cli_format  = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_file_format = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
 markers = [
     "smoke: critical-path tests",
     "api: REST API tests",
     "ui: browser UI tests",
 ]
+# log_file and alluredir are set in pytest_configure (conftest.py) so they
+# resolve to absolute paths under output/ regardless of the working directory.
 
-[tool.uv.scripts]
-test-parallel = "pytest -n auto"
-test-stable   = "pytest --reruns 1 --reruns-delay 2"
-# Usage: uv run test-parallel  /  uv run test-stable
+# [tool.uv.scripts] is not supported in this version of uv — run profiles directly:
+#   parallel:  uv run pytest -n auto
+#   stable:    uv run pytest --reruns 1 --reruns-delay 2
 ```
 
 ---
