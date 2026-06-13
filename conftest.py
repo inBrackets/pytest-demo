@@ -31,6 +31,17 @@ def pytest_configure(config: pytest.Config) -> None:
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     rep = yield
     setattr(item, f"rep_{rep.when}", rep)
+    if rep.when == "call" and rep.failed:
+        pw_page: Page | None = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
+        if pw_page:
+            try:
+                allure.attach(
+                    pw_page.screenshot(),
+                    name="screenshot",
+                    attachment_type=allure.attachment_type.PNG,
+                )
+            except Exception:
+                pass
     return rep
 
 
@@ -86,15 +97,6 @@ def browser_context(
 def page(browser_context: BrowserContext, request: pytest.FixtureRequest) -> Page:
     pw_page = browser_context.new_page()
     yield pw_page
-    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        try:
-            allure.attach(
-                pw_page.screenshot(),
-                name="screenshot",
-                attachment_type=allure.attachment_type.PNG,
-            )
-        except Exception:
-            pass
     pw_page.close()
 
 
@@ -107,14 +109,6 @@ def unauthenticated_page(browser: Browser, settings: Settings, tmp_path: Path, r
     pw_page = context.new_page()
     yield pw_page
     if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        try:
-            allure.attach(
-                pw_page.screenshot(),
-                name="screenshot",
-                attachment_type=allure.attachment_type.PNG,
-            )
-        except Exception:
-            pass
         context.tracing.stop(path=str(trace_zip))
         allure.attach.file(str(trace_zip), name="trace", attachment_type=allure.attachment_type.ZIP)
     else:
