@@ -1,0 +1,2 @@
+2026-06-14 20:10:18 DEBUG    asyncio: Using selector: EpollSelector
+2026-06-14 20:10:18 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
