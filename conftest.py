@@ -13,7 +13,10 @@ from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Page
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
 from core.config import Settings
+from products.pages.home_page import HomePage
 from users.pages.login_page import LoginPage
+
+_logger = logging.getLogger(__name__)
 
 _TEST_PASSWORD = "Test1234!"
 _rerun_nodeids: set[str] = set()
@@ -114,6 +117,11 @@ def pytest_runtest_makereport(
     return rep
 
 
+@pytest.fixture
+def home_page(page: Page, settings: Settings) -> HomePage:
+    return HomePage(page=page, settings=settings)
+
+
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     return Settings()
@@ -144,8 +152,8 @@ def _account_lifecycle(client: AeAccountClient) -> Generator[dict[str, str], Non
     finally:
         try:
             client.delete_account(email=email, password=password)
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.warning("Account deletion failed for %s: %s", email, exc)
 
 
 @pytest.fixture(scope="session")
@@ -253,8 +261,8 @@ def disposable_credentials(
         AeAccountClient(api_context, settings).delete_account(
             email=creds["email"], password=creds["password"]
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        _logger.warning("Account deletion failed for %s: %s", creds["email"], exc)
 
 
 @pytest.fixture

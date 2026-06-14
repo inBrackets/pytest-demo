@@ -12,6 +12,7 @@ class TestLoginPage:
 
     def test_page_loads(self, unauthenticated_page: Page, settings: Settings) -> None:
         LoginPage(page=unauthenticated_page, settings=settings).navigate()
+        assert "/login" in unauthenticated_page.url
 
     def test_valid_credentials_redirect_away_from_login(
         self, unauthenticated_page: Page, settings: Settings, live_account: dict[str, str]

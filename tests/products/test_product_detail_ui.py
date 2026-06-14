@@ -19,15 +19,15 @@ class TestProductDetailPage:
 
     def test_product_detail_page_shows_category(self, product_detail_page: ProductDetailPage) -> None:
         product_detail_page.navigate_to(product_id=1)
-        assert "Category" in product_detail_page.get_category()
+        assert product_detail_page.get_category().split(":", 1)[-1].strip()
 
     def test_product_detail_page_shows_availability(self, product_detail_page: ProductDetailPage) -> None:
         product_detail_page.navigate_to(product_id=1)
-        assert "Availability" in product_detail_page.get_availability()
+        assert product_detail_page.get_availability().split(":", 1)[-1].strip()
 
     def test_product_detail_page_shows_brand(self, product_detail_page: ProductDetailPage) -> None:
         product_detail_page.navigate_to(product_id=1)
-        assert "Brand" in product_detail_page.get_brand()
+        assert product_detail_page.get_brand().split(":", 1)[-1].strip()
 
     def test_view_product_link_navigates_to_detail(
         self, product_page: ProductPage, product_detail_page: ProductDetailPage

@@ -74,6 +74,8 @@ class TestCreatePost:
     ) -> None:
         post = post_client.create(CreatePostRequest.make(title=title, body=body))
         assert post.id > 0
+        assert post.title == title
+        assert post.body == body
 
 
 @allure.feature("Posts API")

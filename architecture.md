@@ -34,7 +34,7 @@ The design prioritises extensibility: adding a new API backend requires one new 
 | Logging               | Python `logging` module; `log_cli = true`; logs attached to Allure for every test |
 | Response validation   | `BaseApiClient._validated()` wraps every `model_validate()`; attaches raw JSON to Allure on `ValidationError` |
 | Flaky test detection  | `pytest_runtest_logreport` hook labels Allure results and prints terminal summary for tests that pass after `--reruns` |
-| Visual regression     | Playwright `to_have_screenshot()` snapshot tests; `--update-snapshots` to regenerate baselines |
+| Visual regression     | Playwright `to_be_visible()` checks on key UI elements; failures write PNGs to `output/screenshots/` |
 
 ---
 
@@ -68,6 +68,7 @@ pytest-demo/
 │   ├── allure-results/         # raw JSON/attachment files written during test run
 │   │   └── .gitkeep
 │   ├── allure-report/          # generated HTML report (allure generate …)
+│   ├── screenshots/            # failure screenshots written by _save_screenshot (created on demand)
 │   └── logs/
 │       ├── .gitkeep
 │       └── test.log            # debug log; test_gw0.log … under xdist
@@ -265,7 +266,7 @@ Every `_get` / `_post` / `_put` / `_patch` method (single-object response):
    as a `TEXT` attachment named `error-response-{status}`. This means every API failure in
    the Allure report includes the full error payload for post-mortem analysis without
    needing to reproduce the failure.
-4. Calls `self._validated(response.json(), url)` and returns the result. `_validated` is a
+4. Calls `self._validated(response.json())` and returns the result. `_validated` is a
    thin wrapper around `model_validate` that catches `ValidationError`, attaches the raw JSON
    to Allure as `schema-validation-failure`, then re-raises. This surfaces the actual
    response body when the API returns an unexpected shape.
@@ -277,7 +278,7 @@ making `pytest.raises(ApiError)` unreachable.
 `_get_many` (list response) differs at step 4 — a JSON array cannot be passed to
 `model_validate` on a single-item model. The implementation calls `_validated` per element:
 ```python
-return [self._validated(item, url) for item in response.json()]
+return [self._validated(item) for item in response.json()]
 ```
 
 `_delete` follows steps 1, 2, and 3 only — it returns `None` so there is no response
@@ -539,8 +540,8 @@ def _account_lifecycle(client):
     finally:
         try:
             client.delete_account(email=email, password=password)
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.warning("Account deletion failed for %s: %s", email, exc)
 
 # disposable_credentials: yields a name/email/password dict and deletes the
 # account at teardown.  Used by tests that create an account through the UI
@@ -554,8 +555,8 @@ def disposable_credentials(api_context, settings) -> Generator[dict[str, str], N
         AeAccountClient(api_context, settings).delete_account(
             email=creds["email"], password=creds["password"]
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        _logger.warning("Account deletion failed for %s: %s", creds["email"], exc)
 
 # _ae_api_context: session-scoped APIRequestContext used exclusively by
 # live_account.  Kept separate from the function-scoped api_context so the
@@ -654,6 +655,8 @@ def pytest_configure(config):
 # Screenshot is taken here — not in the page fixture teardown — because allure-pytest
 # keeps the test result open during the call phase. Attachments added in fixture teardown
 # land in the fixture's container (shown only under "Tear Down"), not in the test result.
+# Bytes are captured once and passed to both allure.attach and _save_screenshot to avoid
+# a second Playwright call.
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
     rep = yield
@@ -662,11 +665,20 @@ def pytest_runtest_makereport(item, call):
         pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
         if pw_page:
             try:
-                allure.attach(pw_page.screenshot(), name="screenshot",
-                              attachment_type=allure.attachment_type.PNG)
+                png = pw_page.screenshot()
+                allure.attach(png, name="screenshot", attachment_type=allure.attachment_type.PNG)
+                _save_screenshot(item, png)
             except Exception:
                 pass
     return rep
+
+# Writes the screenshot bytes to output/screenshots/<slug>.png so failures can be
+# inspected directly on disk without opening the Allure report.
+def _save_screenshot(item, png: bytes) -> None:
+    slug = item.nodeid.replace("/", "_").replace("::", "_").replace("[", "_").replace("]", "")
+    screenshots_dir = item.config.rootpath / "output" / "screenshots"
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    (screenshots_dir / f"{slug}.png").write_bytes(png)
 
 # Attaches the Playwright trace after test failure.
 # Takes trace_path as a direct parameter (autouse pulls it in for every test).
@@ -709,6 +721,16 @@ def unauthenticated_page(browser, settings, tmp_path, request):
     context.close()
 ```
 
+Root `conftest.py` also defines `home_page` — a fixture used across both `tests/home/`
+and `tests/products/`. Shared page-object fixtures belong at the root rather than in a
+single feature conftest so they do not need to be duplicated:
+
+```python
+@pytest.fixture
+def home_page(page: Page, settings: Settings) -> HomePage:
+    return HomePage(page=page, settings=settings)
+```
+
 ### Feature `conftest.py` (e.g. `tests/users/conftest.py`)
 
 ```python
@@ -722,6 +744,9 @@ client with the right fixtures injected. Tests that need a `LoginPage` construct
 directly: `LoginPage(page=unauthenticated_page, settings=settings).navigate()`. Adding a
 `login_page` fixture here would hide the intent and create an unused symbol whenever a
 test file already builds the page inline.
+
+Page-object fixtures that are used in more than one feature folder are defined in root
+`conftest.py` (e.g. `home_page`), not duplicated across sub-conftests.
 
 Tests that exercise the login form itself (credential validation, redirect on success,
 error messaging) must start unauthenticated and use `unauthenticated_page` from the root
@@ -889,12 +914,14 @@ annotation is misleading.
 Two separate mechanisms handle failure capture, each timed to when its data is available:
 
 **Screenshot** — captured inside `pytest_runtest_makereport` during the `"call"` phase,
-immediately after the test body raises. At this point allure-pytest's test result container
-is still open, so `allure.attach()` adds the image directly to the test result's
-`attachments` list. Capturing in fixture teardown instead would attach to the fixture's
-container (`afters`), making the screenshot appear only under the collapsed "Tear Down"
-section — not at the top of the report where it is most useful. `item.funcargs` still
-holds all live fixture objects during the call phase so `page.screenshot()` works.
+immediately after the test body raises. The bytes are captured once and used for two
+destinations: `allure.attach()` adds the image to the active test result (visible at the
+top of the Allure report), and `_save_screenshot()` writes the same bytes to
+`output/screenshots/<slug>.png` on disk for direct inspection without opening the report.
+Capturing in fixture teardown instead would attach to the fixture's container (`afters`),
+making the screenshot appear only under the collapsed "Tear Down" section — not at the
+top of the report where it is most useful. `item.funcargs` still holds all live fixture
+objects during the call phase so `page.screenshot()` works.
 
 **Trace** — attached by `attach_trace_on_failure` (autouse), which runs after `browser_context`
 teardown has already written `trace.zip` to `trace_path`. This ordering is safe because the
@@ -929,9 +956,9 @@ A `pytest_runtest_logreport` hook in root `conftest.py` turns invisible retries 
 observable signal in both the Allure report and the terminal.
 
 ```
-test_foo FAILED  → outcome == "rerun"   → node ID added to _flaky_nodeids set
-test_foo PASSED  → node ID in set       → allure.dynamic.label("flakiness", "flaky")
-                                        → node ID removed from set
+test_foo FAILED  → outcome == "rerun"   → node ID added to _rerun_nodeids (scratch set)
+test_foo PASSED  → node ID in scratch   → allure.dynamic.label("flakiness", "flaky")
+                                        → node ID moved to _passed_after_retry (reporting set)
 ```
 
 When `--reruns` is active and a test fails then passes:
@@ -940,6 +967,11 @@ When `--reruns` is active and a test fails then passes:
 - **Terminal summary** — `pytest_terminal_summary` prints a `tests that passed after retry
   (flaky)` section at the bottom of the run output listing each affected node ID.
 
+Two module-level sets power the detection. `_rerun_nodeids` is a scratch set: IDs are
+added on `"rerun"` outcome and removed when the same ID later passes. `_passed_after_retry`
+is the reporting set that drives the terminal summary — it is never cleared so the summary
+accurately lists every node that flaked during the session.
+
 Tests with known, accepted instability can be tagged explicitly with `@pytest.mark.flaky`
 and excluded or isolated with `-m "not flaky"`. The hook still detects them at runtime;
 the marker is documentary.
@@ -947,7 +979,7 @@ the marker is documentary.
 `allure.dynamic.label` requires an active Allure test context. Conftest hooks have higher
 pytest priority than installed plugins, so the hook fires while allure-pytest's listener
 still holds the test result open. Under xdist (where tests run in worker processes),
-`_flaky_nodeids` in the controller process is still populated via relayed
+`_rerun_nodeids` in the controller process is still populated via relayed
 `pytest_runtest_logreport` events, so the terminal summary works; the Allure label call
 is wrapped in `contextlib.suppress(Exception)` to degrade gracefully if the worker's
 allure context is not accessible from the controller.
@@ -1011,10 +1043,14 @@ def test_various_payloads_return_generated_id(
 ) -> None:
     post = post_client.create(CreatePostRequest.make(title=title, body=body))
     assert post.id > 0
+    assert post.title == title
+    assert post.body == body
 ```
 
 Parametrize for input variety (IDs, payloads, user names) — not for assertion variety.
 Each assertion should remain a separate test method so failures are isolated.
+Every parametrize argument must be asserted in the test body; an argument that is passed
+to the API but never verified adds no coverage.
 
 ### Asserting on the browser URL
 
@@ -1222,51 +1258,37 @@ remains untouched.
 
 ## Visual Regression Testing
 
-`tests/products/test_product_visual.py` contains snapshot tests using Playwright's
-built-in pixel comparison. Tests are tagged `@pytest.mark.visual` so they can be
-excluded from normal runs with `-m "not visual"`.
+`tests/products/test_product_visual.py` contains visual sanity tests tagged
+`@pytest.mark.visual` so they can be excluded from normal runs with `-m "not visual"`.
+
+These tests use `unauthenticated_page` because the pages under test (home, product
+listing) are publicly accessible — no auth session is needed. Using `unauthenticated_page`
+avoids the `live_account` session fixture entirely, so the visual tests do not depend on
+the AE account API being reachable.
 
 ```python
 @pytest.mark.ui
 @pytest.mark.visual
 class TestProductVisualRegression:
-    def test_home_page_hero_banner(self, page: Page, settings: Settings) -> None:
-        HomePage(page=page, settings=settings).navigate()
-        expect(page.locator(".item.active")).to_have_screenshot(
-            "home-hero.png",
-            threshold=0.1,   # 10 % pixel-diff tolerance — handles anti-aliasing noise
-        )
+    def test_home_page_hero_banner(self, unauthenticated_page: Page, settings: Settings) -> None:
+        HomePage(page=unauthenticated_page, settings=settings).navigate()
+        expect(unauthenticated_page.locator(".item.active").first).to_be_visible()
 
-    def test_product_listing_grid(self, page: Page, settings: Settings) -> None:
-        ProductPage(page=page, settings=settings).navigate()
-        expect(page.locator(".features_items")).to_have_screenshot(
-            "product-listing.png",
-            threshold=0.1,
-        )
+    def test_product_listing_grid(self, unauthenticated_page: Page, settings: Settings) -> None:
+        ProductPage(page=unauthenticated_page, settings=settings).navigate()
+        expect(unauthenticated_page.locator(".features_items")).to_be_visible()
 ```
 
-### Snapshot lifecycle
+Visual tests assert element visibility rather than pixel-exact snapshots. This avoids
+the baseline management overhead of `to_have_screenshot()` (committed PNG files,
+`--update-snapshots` workflow, CI flakiness from rendering differences). When a visual
+test fails, `pytest_runtest_makereport` captures a full-page screenshot and writes it to
+`output/screenshots/<test-slug>.png` for direct inspection — no Allure report needed
+to see what the page looked like at failure time.
 
-| Step | Command |
-|------|---------|
-| Generate baselines (first time) | `uv run pytest tests/products/test_product_visual.py --update-snapshots` |
-| Normal comparison run | `uv run pytest -m visual` |
-| Regenerate after intentional UI change | `uv run pytest tests/products/test_product_visual.py --update-snapshots` |
-| Exclude from full suite | `uv run pytest -m "not visual"` |
-
-Baseline PNGs are stored in `tests/products/__snapshots__/` next to the test file
-and **must be committed** to source control — CI compares against them on every push.
-
-### What snapshot tests catch
-
-Functional tests exercise behaviour but are blind to layout changes: a button that moves
-50 px, an input that becomes hidden, or a font size that regresses. `to_have_screenshot`
-fails on any pixel difference beyond `threshold`, catching accidental CSS regressions
-that pass all functional assertions.
-
-`threshold=0.1` (10 %) tolerates sub-pixel anti-aliasing differences between runs
-without masking real regressions. Tighten it for pixel-critical components; raise it
-for areas with animated or variable content (banners, carousels).
+Note on `.first` — `.item.active` matches two carousel containers on the home page.
+`locator(...).first` pins the assertion to the hero carousel, avoiding Playwright's
+strict-mode error for multi-match locators.
 
 ---
 
@@ -1308,6 +1330,5 @@ The first run will not have trend history (no previous `gh-pages` branch). All s
 4. `allure serve output/allure-results` — report renders with steps, logs, and artefacts.
 5. `uv run pytest -m smoke --co -q` — confirms marker collection covers expected tests.
 6. `uv run pytest --reruns 1 --reruns-delay 2 -v` — flaky detection run; check terminal summary and Allure `flakiness` label on any retry-passed test.
-7. `uv run pytest tests/products/test_product_visual.py --update-snapshots` — generate visual regression baselines (first time only).
-8. `uv run pytest -m visual` — compare against baselines; fails if layout has drifted.
-9. `uv run pytest -m "not visual"` — standard run excluding snapshot tests.
+7. `uv run pytest -m visual` — run visual sanity tests; on failure, check `output/screenshots/` for the captured page state.
+8. `uv run pytest -m "not visual"` — standard run excluding visual tests.

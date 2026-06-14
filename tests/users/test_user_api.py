@@ -71,6 +71,7 @@ class TestCreateUser:
     ) -> None:
         user = user_client.create(CreateUserRequest.make(name=name, email=email))
         assert user.name == name
+        assert user.email == email
 
 
 @allure.feature("Users API")
