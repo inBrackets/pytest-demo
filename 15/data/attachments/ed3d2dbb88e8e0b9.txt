@@ -1,0 +1,4 @@
+2026-06-14 01:02:13 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 01:02:16 DEBUG    users.pages.login_page: Starting signup for pytest_d5f520c6@test.com
+2026-06-14 01:02:18 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-14 01:02:18 DEBUG    ae_account.api.ae_account_client: ← 200
