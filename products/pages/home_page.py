@@ -55,6 +55,10 @@ class HomePage(BasePage):
         return self._page.locator("#recommended-item-carousel .add-to-cart")
 
     @property
+    def _cart_modal(self) -> Locator:
+        return self._page.locator("div.modal-content")
+
+    @property
     def _cart_modal_link(self) -> Locator:
         return self._page.locator("div.modal-content a[href='/view_cart']")
 
@@ -106,7 +110,7 @@ class HomePage(BasePage):
     @allure.step("Add recommended item at index {index} to cart")
     def add_recommended_to_cart(self, index: int = 0) -> None:
         self._recommended_add_to_cart.nth(index).click()
-        self._page.locator("div.modal-content").wait_for(state="visible")
+        self._cart_modal.wait_for(state="visible")
 
     @allure.step("View cart from modal")
     def view_cart_from_modal(self) -> None:

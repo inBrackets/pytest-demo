@@ -11,4 +11,6 @@ def add_product_and_checkout(page: Page, settings: Settings) -> None:
     product_pg.navigate()
     product_pg.add_to_cart(index=0)
     product_pg.view_cart_from_modal()
-    CartPage(page=page, settings=settings).proceed_to_checkout()
+    cart = CartPage(page=page, settings=settings)
+    cart.is_loaded()
+    cart.proceed_to_checkout()

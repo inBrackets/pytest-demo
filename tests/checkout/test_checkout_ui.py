@@ -68,6 +68,7 @@ class TestPlaceOrderRegisterDuringCheckout:
         product_pg.view_cart_from_modal()
 
         cart = CartPage(page=unauthenticated_page, settings=settings)
+        cart.is_loaded()
         cart.proceed_to_checkout()
 
         unauthenticated_page.locator("a:has-text('Register / Login')").click()
@@ -85,7 +86,9 @@ class TestPlaceOrderRegisterDuringCheckout:
         signup.continue_after_creation()
 
         unauthenticated_page.locator("a[href='/view_cart']").first.click()
-        CartPage(page=unauthenticated_page, settings=settings).proceed_to_checkout()
+        cart = CartPage(page=unauthenticated_page, settings=settings)
+        cart.is_loaded()
+        cart.proceed_to_checkout()
 
         checkout = CheckoutPage(page=unauthenticated_page, settings=settings)
         checkout.is_loaded()
