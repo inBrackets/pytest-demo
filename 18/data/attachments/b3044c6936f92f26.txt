@@ -1,0 +1,2 @@
+2026-06-14 09:12:49 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 09:12:57 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount

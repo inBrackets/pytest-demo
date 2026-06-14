@@ -1,0 +1,2 @@
+2026-06-14 09:11:23 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-14 09:11:32 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
