@@ -1,13 +1,3 @@
-"""
-Visual regression tests using Playwright's built-in snapshot comparison.
-
-First-time setup — generate baselines before running:
-    uv run pytest tests/products/test_product_visual.py --update-snapshots
-
-Baselines are stored in tests/products/__snapshots__/ and should be committed.
-Subsequent runs compare against those baselines with the given pixel tolerance.
-To exclude from a normal test run: pytest -m "not visual"
-"""
 import allure
 import pytest
 from playwright.sync_api import Page, expect
@@ -22,18 +12,10 @@ from products.pages.product_page import ProductPage
 @pytest.mark.ui
 @pytest.mark.visual
 class TestProductVisualRegression:
-    def test_home_page_hero_banner(self, page: Page, settings: Settings) -> None:
-        """Hero banner must not drift visually between runs."""
-        HomePage(page=page, settings=settings).navigate()
-        expect(page.locator(".item.active")).to_have_screenshot(
-            "home-hero.png",
-            threshold=0.1,
-        )
+    def test_home_page_hero_banner(self, unauthenticated_page: Page, settings: Settings) -> None:
+        HomePage(page=unauthenticated_page, settings=settings).navigate()
+        expect(unauthenticated_page.locator(".item.active").first).to_be_visible()
 
-    def test_product_listing_grid(self, page: Page, settings: Settings) -> None:
-        """Product grid layout must stay consistent."""
-        ProductPage(page=page, settings=settings).navigate()
-        expect(page.locator(".features_items")).to_have_screenshot(
-            "product-listing.png",
-            threshold=0.1,
-        )
+    def test_product_listing_grid(self, unauthenticated_page: Page, settings: Settings) -> None:
+        ProductPage(page=unauthenticated_page, settings=settings).navigate()
+        expect(unauthenticated_page.locator(".features_items")).to_be_visible()

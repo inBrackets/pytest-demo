@@ -88,6 +88,13 @@ def resource_registry() -> Generator[ResourceRegistry, None, None]:
     registry.cleanup_all()
 
 
+def _save_screenshot(item: pytest.Item, png: bytes) -> None:
+    slug = item.nodeid.replace("/", "_").replace("::", "_").replace("[", "_").replace("]", "")
+    screenshots_dir = item.config.rootpath / "output" / "screenshots"
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    (screenshots_dir / f"{slug}.png").write_bytes(png)
+
+
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(
     item: pytest.Item, call: pytest.CallInfo[None]
@@ -99,11 +106,9 @@ def pytest_runtest_makereport(
             pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
             if isinstance(pw_page, Page):
                 try:
-                    allure.attach(
-                        pw_page.screenshot(),
-                        name="screenshot",
-                        attachment_type=allure.attachment_type.PNG,
-                    )
+                    png = pw_page.screenshot()
+                    allure.attach(png, name="screenshot", attachment_type=allure.attachment_type.PNG)
+                    _save_screenshot(item, png)
                 except Exception:
                     pass
     return rep
