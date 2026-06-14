@@ -16,7 +16,8 @@ from core.config import Settings
 from users.pages.login_page import LoginPage
 
 _TEST_PASSWORD = "Test1234!"
-_flaky_nodeids: set[str] = set()
+_rerun_nodeids: set[str] = set()
+_passed_after_retry: set[str] = set()
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -33,28 +34,26 @@ def pytest_configure(config: pytest.Config) -> None:
     log_name = f"test_{worker_id}.log" if worker_id else "test.log"
     config.option.log_file = str(logs_dir / log_name)
 
-    config.addinivalue_line("markers", "flaky: known intermittently-failing tests")
-    config.addinivalue_line("markers", "visual: visual regression snapshot tests")
-
 
 def pytest_runtest_logreport(report: pytest.TestReport) -> None:
     if report.when != "call":
         return
     if report.outcome == "rerun":
-        _flaky_nodeids.add(report.nodeid)
-    elif report.passed and report.nodeid in _flaky_nodeids:
+        _rerun_nodeids.add(report.nodeid)
+    elif report.passed and report.nodeid in _rerun_nodeids:
+        _rerun_nodeids.discard(report.nodeid)
+        _passed_after_retry.add(report.nodeid)
         with contextlib.suppress(Exception):
             allure.dynamic.label("flakiness", "flaky")
-        _flaky_nodeids.discard(report.nodeid)
 
 
 def pytest_terminal_summary(
     terminalreporter: Any, exitstatus: int, config: pytest.Config
 ) -> None:
-    if not _flaky_nodeids:
+    if not _passed_after_retry:
         return
     terminalreporter.write_sep("-", "tests that passed after retry (flaky)")
-    for nodeid in sorted(_flaky_nodeids):
+    for nodeid in sorted(_passed_after_retry):
         terminalreporter.write_line(f"  FLAKY: {nodeid}")
 
 
@@ -63,23 +62,21 @@ class ResourceRegistry:
 
     def __init__(self) -> None:
         self._resources: list[tuple[str, str, Callable[[], None]]] = []
+        self._logger = logging.getLogger(__name__)
 
     def register(
         self, resource_type: str, resource_id: str, cleanup: Callable[[], None]
     ) -> None:
         self._resources.append((resource_type, resource_id, cleanup))
-        logging.getLogger(__name__).debug(
-            "Registered %s %s for cleanup", resource_type, resource_id
-        )
+        self._logger.debug("Registered %s %s for cleanup", resource_type, resource_id)
 
     def cleanup_all(self) -> None:
-        logger = logging.getLogger(__name__)
         for resource_type, resource_id, cleanup in reversed(self._resources):
             try:
                 cleanup()
-                logger.debug("Cleaned up %s %s", resource_type, resource_id)
+                self._logger.debug("Cleaned up %s %s", resource_type, resource_id)
             except Exception as exc:
-                logger.warning(
+                self._logger.warning(
                     "Cleanup failed for %s %s: %s", resource_type, resource_id, exc
                 )
 

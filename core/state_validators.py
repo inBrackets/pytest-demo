@@ -28,22 +28,22 @@ class StateValidator:
 
     @staticmethod
     def assert_url_contains(page: Page, fragment: str) -> None:
-        with allure.step(f"Assert URL contains '{fragment}'"):
-            assert fragment in page.url, (
-                f"Expected URL to contain '{fragment}', got: {page.url}"
-            )
-            _logger.info("Confirmed: URL contains '%s'", fragment)
+        StateValidator._check_url(page, fragment, present=True)
 
     @staticmethod
     def assert_url_excludes(page: Page, fragment: str) -> None:
-        with allure.step(f"Assert URL does not contain '{fragment}'"):
-            assert fragment not in page.url, (
-                f"Expected URL to not contain '{fragment}', got: {page.url}"
-            )
-            _logger.info("Confirmed: URL does not contain '%s'", fragment)
+        StateValidator._check_url(page, fragment, present=False)
 
     @staticmethod
     def assert_text_visible(page: Page, text: str) -> None:
         with allure.step(f"Assert '{text}' is visible on page"):
             expect(page.get_by_text(text, exact=False)).to_be_visible()
             _logger.info("Confirmed: text '%s' is visible", text)
+
+    @staticmethod
+    def _check_url(page: Page, fragment: str, *, present: bool) -> None:
+        verb = "contains" if present else "does not contain"
+        with allure.step(f"Assert URL {verb} '{fragment}'"):
+            ok = (fragment in page.url) if present else (fragment not in page.url)
+            assert ok, f"Expected URL to {verb} '{fragment}', got: {page.url}"
+            _logger.info("Confirmed: URL %s '%s'", verb, fragment)
