@@ -1,8 +1,12 @@
+import allure
 import pytest
 
 from products.pages.product_page import ProductPage
 
 
+@allure.feature("Product Catalog")
+@allure.story("Category Navigation")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestViewCategoryProducts:
     """TC 18 — View Category Products"""
@@ -18,6 +22,9 @@ class TestViewCategoryProducts:
         assert len(product_page.get_product_names()) > 0
 
 
+@allure.feature("Product Catalog")
+@allure.story("Brand Navigation")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestViewBrandProducts:
     """TC 19 — View & Cart Brand Products"""

@@ -8,6 +8,7 @@ from posts.models.post_model import CreatePostRequest
 
 @allure.feature("Posts API")
 @allure.story("Retrieve Post by ID")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetPost:
@@ -40,6 +41,7 @@ class TestGetPost:
 
 @allure.feature("Posts API")
 @allure.story("Retrieve All Posts")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestGetAllPosts:
     def test_returns_non_empty_list(self, post_client: PostApiClient) -> None:
@@ -53,6 +55,7 @@ class TestGetAllPosts:
 
 @allure.feature("Posts API")
 @allure.story("Create Post")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestCreatePost:
     def test_echoes_payload_fields(self, post_client: PostApiClient) -> None:
@@ -80,6 +83,7 @@ class TestCreatePost:
 
 @allure.feature("Posts API")
 @allure.story("Update Post")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestUpdatePost:
     def test_updated_title_is_reflected(self, post_client: PostApiClient) -> None:
@@ -90,6 +94,7 @@ class TestUpdatePost:
 
 @allure.feature("Posts API")
 @allure.story("Delete Post")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestDeletePost:
     def test_delete_returns_none(self, post_client: PostApiClient) -> None:

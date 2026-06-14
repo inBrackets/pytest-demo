@@ -8,6 +8,7 @@ from users.models.user_model import CreateUserRequest
 
 @allure.feature("Users API")
 @allure.story("Retrieve User by ID")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetUser:
@@ -36,6 +37,7 @@ class TestGetUser:
 
 @allure.feature("Users API")
 @allure.story("Retrieve All Users")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestGetAllUsers:
     def test_returns_non_empty_list(self, user_client: UserApiClient) -> None:
@@ -49,6 +51,7 @@ class TestGetAllUsers:
 
 @allure.feature("Users API")
 @allure.story("Create User")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.api
 class TestCreateUser:
     def test_echoes_payload_fields(self, user_client: UserApiClient) -> None:
@@ -76,6 +79,7 @@ class TestCreateUser:
 
 @allure.feature("Users API")
 @allure.story("Update User")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestUpdateUser:
     def test_updated_name_is_reflected(self, user_client: UserApiClient) -> None:
@@ -86,6 +90,7 @@ class TestUpdateUser:
 
 @allure.feature("Users API")
 @allure.story("Delete User")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestDeleteUser:
     def test_delete_returns_none(self, user_client: UserApiClient) -> None:

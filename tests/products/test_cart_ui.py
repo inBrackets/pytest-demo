@@ -1,3 +1,4 @@
+import allure
 import pytest
 from playwright.sync_api import Page
 
@@ -9,6 +10,9 @@ from products.pages.product_page import ProductPage
 from users.pages.login_page import LoginPage
 
 
+@allure.feature("Shopping Cart")
+@allure.story("Add Products")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.ui
 @pytest.mark.smoke
 class TestAddProductsToCart:
@@ -35,6 +39,9 @@ class TestAddProductsToCart:
         assert len(cart_page.get_product_names()) > 0
 
 
+@allure.feature("Shopping Cart")
+@allure.story("Product Quantity")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestProductQuantityInCart:
     """TC 13 — Verify Product Quantity in Cart"""
@@ -52,6 +59,9 @@ class TestProductQuantityInCart:
         assert 4 in quantities
 
 
+@allure.feature("Shopping Cart")
+@allure.story("Remove Product")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestRemoveProductFromCart:
     """TC 17 — Remove Products From Cart"""
@@ -69,6 +79,9 @@ class TestRemoveProductFromCart:
         assert count_after < count_before
 
 
+@allure.feature("Shopping Cart")
+@allure.story("Cart Persistence After Login")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestSearchAndVerifyCartAfterLogin:
     """TC 20 — Search Products and Verify Cart After Login"""
@@ -98,6 +111,9 @@ class TestSearchAndVerifyCartAfterLogin:
         assert cart.get_product_names() == names_before
 
 
+@allure.feature("Shopping Cart")
+@allure.story("Recommended Items")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.ui
 class TestAddRecommendedItemToCart:
     """TC 22 — Add to Cart from Recommended Items"""

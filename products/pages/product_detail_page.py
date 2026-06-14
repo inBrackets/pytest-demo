@@ -45,16 +45,8 @@ class ProductDetailPage(BasePage):
         return self._page.locator("button.cart")
 
     @property
-    def _cart_modal(self) -> Locator:
-        return self._page.locator("div.modal-content")
-
-    @property
     def _continue_shopping_button(self) -> Locator:
         return self._page.locator("button.close-modal")
-
-    @property
-    def _cart_modal_link(self) -> Locator:
-        return self._page.locator("div.modal-content a[href='/view_cart']")
 
     @property
     def _review_name(self) -> Locator:

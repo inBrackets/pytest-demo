@@ -1,7 +1,11 @@
 import logging
+from typing import Any, Callable
 
 import allure
+import pytest
 from playwright.sync_api import Page, expect
+
+from core.exceptions import ApiError
 
 _logger = logging.getLogger(__name__)
 
@@ -39,6 +43,31 @@ class StateValidator:
         with allure.step(f"Assert '{text}' is visible on page"):
             expect(page.get_by_text(text, exact=False)).to_be_visible()
             _logger.info("Confirmed: text '%s' is visible", text)
+
+    @staticmethod
+    def assert_resource_exists(get_fn: Callable[[], Any]) -> None:
+        """Assert that calling get_fn() returns a non-None result without raising.
+
+        Usage:
+            StateValidator.assert_resource_exists(lambda: client.get(resource_id=id))
+        """
+        with allure.step("Assert resource exists"):
+            result = get_fn()
+            assert result is not None
+            _logger.info("Confirmed: resource exists")
+
+    @staticmethod
+    def assert_resource_deleted(get_fn: Callable[[], Any]) -> None:
+        """Assert that calling get_fn() raises ApiError with status 404.
+
+        Usage:
+            StateValidator.assert_resource_deleted(lambda: client.get(resource_id=id))
+        """
+        with allure.step("Assert resource is deleted (expects 404)"):
+            with pytest.raises(ApiError) as exc_info:
+                get_fn()
+            assert exc_info.value.status_code == 404
+            _logger.info("Confirmed: resource is deleted (404 returned)")
 
     @staticmethod
     def _check_url(page: Page, fragment: str, *, present: bool) -> None:

@@ -1,9 +1,13 @@
+import allure
 import pytest
 
 from products.pages.product_detail_page import ProductDetailPage
 from products.pages.product_page import ProductPage
 
 
+@allure.feature("Product Catalog")
+@allure.story("Product Detail")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.ui
 @pytest.mark.smoke
 class TestProductDetailPage:
@@ -37,6 +41,9 @@ class TestProductDetailPage:
         product_detail_page.is_loaded()
 
 
+@allure.feature("Product Catalog")
+@allure.story("Product Review")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.ui
 class TestAddReview:
     """TC 21 — Add Review on Product"""

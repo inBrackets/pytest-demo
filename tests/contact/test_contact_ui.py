@@ -1,9 +1,13 @@
+import allure
 import pytest
 
 from contact.pages.contact_page import ContactPage
 from core.config import Settings
 
 
+@allure.feature("Contact")
+@allure.story("Contact Form")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestContactUsForm:
     """TC 6 — Contact Us Form"""

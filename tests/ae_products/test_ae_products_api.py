@@ -1,8 +1,12 @@
+import allure
 import pytest
 
 from ae_products.api.ae_products_client import AeProductsClient
 
 
+@allure.feature("AE Products API")
+@allure.story("Get All Products")
+@allure.severity(allure.severity_level.BLOCKER)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetAllProducts:
@@ -23,6 +27,9 @@ class TestGetAllProducts:
             assert product.price
 
 
+@allure.feature("AE Products API")
+@allure.story("Method Validation")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestPostToProductsList:
     """API 2 — POST /api/productsList → 405"""
@@ -32,6 +39,9 @@ class TestPostToProductsList:
         assert response.response_code == 405
 
 
+@allure.feature("AE Products API")
+@allure.story("Get All Brands")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetAllBrands:
@@ -46,6 +56,9 @@ class TestGetAllBrands:
         assert len(response.brands) > 0
 
 
+@allure.feature("AE Products API")
+@allure.story("Method Validation")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestPutToBrandsList:
     """API 4 — PUT /api/brandsList → 405"""
@@ -55,6 +68,9 @@ class TestPutToBrandsList:
         assert response.response_code == 405
 
 
+@allure.feature("AE Products API")
+@allure.story("Search Products")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestSearchProduct:
@@ -70,6 +86,25 @@ class TestSearchProduct:
         assert any("Blue Top" in p.name for p in response.products)
 
 
+@allure.feature("AE Products API")
+@allure.story("Search Products — Various Keywords")
+@allure.severity(allure.severity_level.NORMAL)
+@pytest.mark.api
+class TestSearchProductVariousKeywords:
+    """Verify search returns results across a range of common keywords."""
+
+    @pytest.mark.parametrize("keyword", ["top", "dress", "saree", "jeans"])
+    def test_returns_results_for_keyword(
+        self, ae_products_client: AeProductsClient, keyword: str
+    ) -> None:
+        response = ae_products_client.search_product(keyword)
+        assert response.response_code == 200
+        assert len(response.products) > 0, f"No results found for keyword '{keyword}'"
+
+
+@allure.feature("AE Products API")
+@allure.story("Search Products — Missing Parameter")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestSearchProductMissingParam:
     """API 6 — POST /api/searchProduct without search_product → 400"""

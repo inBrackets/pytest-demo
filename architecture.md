@@ -865,8 +865,14 @@ def test_logout_redirects_to_login(self, page: Page, ...) -> None:
 ```
 
 `StateValidator` methods use only Playwright `expect()` and standard assertions — they
-have no dependencies on specific page objects and are usable from any test. The class
-exists purely for namespace organisation; all methods are `@staticmethod`.
+have no dependencies on specific page objects and are usable from any test that holds a
+`Page` object directly (i.e. tests using `unauthenticated_page` or `page` fixtures, not
+tests that only hold a page-object fixture). The class exists purely for namespace
+organisation; all methods are `@staticmethod`.
+
+Currently used in:
+- `tests/users/test_login_ui.py` — URL and login/logout state checks
+- `tests/users/test_register_ui.py` — post-registration URL check
 
 `tests/checkout/conftest.py` keeps only fixture definitions (`registered_page`, etc.).
 `registered_page` is a regular fixture (not a generator) because it has no teardown — it

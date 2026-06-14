@@ -8,6 +8,7 @@ from core.config import Settings
 
 @allure.feature("AE Account API")
 @allure.story("Verify Login")
+@allure.severity(allure.severity_level.BLOCKER)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestVerifyLogin:
@@ -34,6 +35,7 @@ class TestVerifyLogin:
 
 @allure.feature("AE Account API")
 @allure.story("Verify Login — Missing Parameters")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestVerifyLoginMissingEmail:
     """API 8 — POST /api/verifyLogin without email → 400"""
@@ -48,7 +50,8 @@ class TestVerifyLoginMissingEmail:
 
 
 @allure.feature("AE Account API")
-@allure.story("Verify Login — Method Validation")
+@allure.story("Method Validation")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestDeleteVerifyLogin:
     """API 9 — DELETE /api/verifyLogin → 405"""
@@ -60,6 +63,7 @@ class TestDeleteVerifyLogin:
 
 @allure.feature("AE Account API")
 @allure.story("Verify Login — Invalid Credentials")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestVerifyLoginInvalidCredentials:
     """API 10 — POST /api/verifyLogin with invalid credentials → 404"""
@@ -81,6 +85,7 @@ class TestVerifyLoginInvalidCredentials:
 
 @allure.feature("AE Account API")
 @allure.story("Create Account")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.api
 class TestCreateAccount:
     """API 11 — POST /api/createAccount"""
@@ -110,6 +115,7 @@ class TestCreateAccount:
 
 @allure.feature("AE Account API")
 @allure.story("Delete Account")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 class TestDeleteAccount:
     """API 12 — DELETE /api/deleteAccount"""
@@ -135,6 +141,7 @@ class TestDeleteAccount:
 
 @allure.feature("AE Account API")
 @allure.story("Update Account")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.api
 class TestUpdateAccount:
     """API 13 — PUT /api/updateAccount"""
@@ -164,6 +171,7 @@ class TestUpdateAccount:
 
 @allure.feature("AE Account API")
 @allure.story("Get User Detail")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetUserDetail:

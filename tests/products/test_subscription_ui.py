@@ -1,9 +1,13 @@
+import allure
 import pytest
 
 from products.pages.cart_page import CartPage
 from products.pages.home_page import HomePage
 
 
+@allure.feature("Subscription")
+@allure.story("Subscribe from Home")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestSubscriptionOnHomePage:
     """TC 10 — Verify Subscription in Homepage"""
@@ -14,6 +18,9 @@ class TestSubscriptionOnHomePage:
         home_page.subscribe("subscriber@test.com")
 
 
+@allure.feature("Subscription")
+@allure.story("Subscribe from Cart")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.ui
 class TestSubscriptionOnCartPage:
     """TC 11 — Verify Subscription in Cart Page"""

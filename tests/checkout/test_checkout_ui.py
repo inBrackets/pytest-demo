@@ -1,3 +1,4 @@
+import allure
 import pytest
 from playwright.sync_api import Page
 
@@ -12,6 +13,9 @@ from users.pages.signup_page import SignupPage
 from tests.checkout.helpers import add_product_and_checkout
 
 
+@allure.feature("Checkout")
+@allure.story("Place Order")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.ui
 class TestPlaceOrderRegisterBeforeCheckout:
     """TC 15 — Place Order: Register Before Checkout"""
@@ -32,6 +36,9 @@ class TestPlaceOrderRegisterBeforeCheckout:
         payment.confirm_payment()
 
 
+@allure.feature("Checkout")
+@allure.story("Place Order")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.ui
 class TestPlaceOrderLoginBeforeCheckout:
     """TC 16 — Place Order: Login Before Checkout"""
@@ -52,6 +59,9 @@ class TestPlaceOrderLoginBeforeCheckout:
         payment.confirm_payment()
 
 
+@allure.feature("Checkout")
+@allure.story("Register During Checkout")
+@allure.severity(allure.severity_level.CRITICAL)
 @pytest.mark.ui
 class TestPlaceOrderRegisterDuringCheckout:
     """TC 14 — Place Order: Register During Checkout"""
@@ -100,6 +110,9 @@ class TestPlaceOrderRegisterDuringCheckout:
         payment.confirm_payment()
 
 
+@allure.feature("Checkout")
+@allure.story("Address Verification")
+@allure.severity(allure.severity_level.NORMAL)
 @pytest.mark.ui
 class TestVerifyAddressAtCheckout:
     """TC 23 — Verify Address Details in Checkout Page"""
@@ -116,6 +129,9 @@ class TestVerifyAddressAtCheckout:
         assert any(line.strip() for line in address_lines)
 
 
+@allure.feature("Checkout")
+@allure.story("Invoice Download")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.ui
 class TestDownloadInvoice:
     """TC 24 — Download Invoice After Purchase Order"""

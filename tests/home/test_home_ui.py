@@ -1,8 +1,12 @@
+import allure
 import pytest
 
 from products.pages.home_page import HomePage
 
 
+@allure.feature("Home Page")
+@allure.story("Navigation")
+@allure.severity(allure.severity_level.MINOR)
 @pytest.mark.ui
 class TestNavigateToTestCasesPage:
     """TC 7 — Verify Test Cases Page"""
@@ -13,6 +17,9 @@ class TestNavigateToTestCasesPage:
         assert "/test_cases" in home_page.current_url.split("#")[0]
 
 
+@allure.feature("Home Page")
+@allure.story("Scroll Behavior")
+@allure.severity(allure.severity_level.TRIVIAL)
 @pytest.mark.ui
 class TestScrollUpWithArrow:
     """TC 25 — Verify Scroll Up Using Arrow Button"""
@@ -25,6 +32,9 @@ class TestScrollUpWithArrow:
         assert hero_text
 
 
+@allure.feature("Home Page")
+@allure.story("Scroll Behavior")
+@allure.severity(allure.severity_level.TRIVIAL)
 @pytest.mark.ui
 class TestScrollUpManually:
     """TC 26 — Verify Scroll Up Without Arrow Button"""
