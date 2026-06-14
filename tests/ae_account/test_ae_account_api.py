@@ -1,3 +1,4 @@
+import allure
 import pytest
 
 from ae_account.api.ae_account_client import AeAccountClient
@@ -5,6 +6,8 @@ from ae_account.models.ae_account_model import AeCreateAccountRequest
 from core.config import Settings
 
 
+@allure.feature("AE Account API")
+@allure.story("Verify Login")
 @pytest.mark.api
 @pytest.mark.smoke
 class TestVerifyLogin:
@@ -29,6 +32,8 @@ class TestVerifyLogin:
         assert "User exists" in response.message
 
 
+@allure.feature("AE Account API")
+@allure.story("Verify Login — Missing Parameters")
 @pytest.mark.api
 class TestVerifyLoginMissingEmail:
     """API 8 — POST /api/verifyLogin without email → 400"""
@@ -42,6 +47,8 @@ class TestVerifyLoginMissingEmail:
         assert response.response_code == 400
 
 
+@allure.feature("AE Account API")
+@allure.story("Verify Login — Method Validation")
 @pytest.mark.api
 class TestDeleteVerifyLogin:
     """API 9 — DELETE /api/verifyLogin → 405"""
@@ -51,6 +58,8 @@ class TestDeleteVerifyLogin:
         assert response.response_code == 405
 
 
+@allure.feature("AE Account API")
+@allure.story("Verify Login — Invalid Credentials")
 @pytest.mark.api
 class TestVerifyLoginInvalidCredentials:
     """API 10 — POST /api/verifyLogin with invalid credentials → 404"""
@@ -70,6 +79,8 @@ class TestVerifyLoginInvalidCredentials:
         assert "not found" in response.message.lower()
 
 
+@allure.feature("AE Account API")
+@allure.story("Create Account")
 @pytest.mark.api
 class TestCreateAccount:
     """API 11 — POST /api/createAccount"""
@@ -97,6 +108,8 @@ class TestCreateAccount:
         assert "created" in response.message.lower()
 
 
+@allure.feature("AE Account API")
+@allure.story("Delete Account")
 @pytest.mark.api
 class TestDeleteAccount:
     """API 12 — DELETE /api/deleteAccount"""
@@ -120,6 +133,8 @@ class TestDeleteAccount:
         assert "deleted" in response.message.lower()
 
 
+@allure.feature("AE Account API")
+@allure.story("Update Account")
 @pytest.mark.api
 class TestUpdateAccount:
     """API 13 — PUT /api/updateAccount"""
@@ -147,6 +162,8 @@ class TestUpdateAccount:
         assert "updated" in response.message.lower()
 
 
+@allure.feature("AE Account API")
+@allure.story("Get User Detail")
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetUserDetail:

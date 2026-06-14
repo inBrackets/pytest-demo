@@ -2,7 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel
+import allure
+from pydantic import BaseModel, ValidationError
 from playwright.sync_api import APIRequestContext, APIResponse
 
 from core.config import Settings
@@ -31,14 +32,31 @@ class BaseApiClient(ABC, Generic[T]):
     def _raise_for_status(self, response: APIResponse, url: str) -> None:
         self._logger.debug("← %d", response.status)
         if not response.ok:
-            raise ApiError(response.status, url, response.text())
+            body = response.text()
+            allure.attach(
+                body,
+                name=f"error-response-{response.status}",
+                attachment_type=allure.attachment_type.TEXT,
+            )
+            raise ApiError(response.status, url, body)
+
+    def _validated(self, data: Any, url: str) -> T:
+        try:
+            return self._response_model.model_validate(data)
+        except ValidationError:
+            allure.attach(
+                str(data),
+                name="schema-validation-failure",
+                attachment_type=allure.attachment_type.TEXT,
+            )
+            raise
 
     def _get(self, resource_id: int | str, params: dict[str, Any] | None = None) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("GET %s", url)
         response = self._context.get(url, params=params)
         self._raise_for_status(response, url)
-        return self._response_model.model_validate(response.json())
+        return self._validated(response.json(), url)
 
     def _get_many(self, params: dict[str, Any] | None = None) -> list[T]:
         url = f"{self.base_url}{self.endpoint}"
@@ -48,28 +66,28 @@ class BaseApiClient(ABC, Generic[T]):
         data = response.json()
         if not isinstance(data, list):
             raise ApiError(response.status, url, f"Expected list response, got {type(data).__name__}")
-        return [self._response_model.model_validate(item) for item in data]
+        return [self._validated(item, url) for item in data]
 
     def _post(self, payload: AppBaseModel) -> T:
         url = f"{self.base_url}{self.endpoint}"
         self._logger.debug("POST %s", url)
         response = self._context.post(url, data=payload.model_dump(by_alias=True))
         self._raise_for_status(response, url)
-        return self._response_model.model_validate(response.json())
+        return self._validated(response.json(), url)
 
     def _put(self, resource_id: int | str, payload: AppBaseModel) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("PUT %s", url)
         response = self._context.put(url, data=payload.model_dump(by_alias=True))
         self._raise_for_status(response, url)
-        return self._response_model.model_validate(response.json())
+        return self._validated(response.json(), url)
 
     def _patch(self, resource_id: int | str, payload: AppBaseModel) -> T:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"
         self._logger.debug("PATCH %s", url)
         response = self._context.patch(url, data=payload.model_dump(by_alias=True))
         self._raise_for_status(response, url)
-        return self._response_model.model_validate(response.json())
+        return self._validated(response.json(), url)
 
     def _delete(self, resource_id: int | str) -> None:
         url = f"{self.base_url}{self.endpoint}/{resource_id}"

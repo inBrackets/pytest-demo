@@ -29,6 +29,8 @@ markers = [
     "api: REST API tests",
     "ui: browser UI tests",
     "slow: long-running end-to-end flows",
+    "flaky: known intermittently-failing tests that need stabilization",
+    "visual: visual regression snapshot tests (run --update-snapshots to create baselines)",
 ]
 
 [dependency-groups]

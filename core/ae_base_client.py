@@ -2,6 +2,7 @@ import logging
 from abc import ABC
 from typing import Any, cast
 
+import allure
 from playwright.sync_api import APIRequestContext, APIResponse
 
 from core.config import Settings
@@ -21,7 +22,13 @@ class AeBaseClient(ABC):
     def _raise_for_status(self, response: APIResponse, url: str) -> None:
         self._logger.debug("← %d", response.status)
         if not response.ok:
-            raise ApiError(response.status, url, response.text())
+            body = response.text()
+            allure.attach(
+                body,
+                name=f"error-response-{response.status}",
+                attachment_type=allure.attachment_type.TEXT,
+            )
+            raise ApiError(response.status, url, body)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self._base_url}{path}"

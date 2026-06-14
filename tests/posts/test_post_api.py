@@ -1,3 +1,4 @@
+import allure
 import pytest
 
 from core.exceptions import ApiError
@@ -5,6 +6,8 @@ from posts.api.post_client import PostApiClient
 from posts.models.post_model import CreatePostRequest
 
 
+@allure.feature("Posts API")
+@allure.story("Retrieve Post by ID")
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetPost:
@@ -25,7 +28,18 @@ class TestGetPost:
             post_client.get(post_id=9999)
         assert exc.value.status_code == 404
 
+    @pytest.mark.parametrize("post_id", [1, 25, 50, 75, 100])
+    def test_valid_id_returns_matching_post(
+        self, post_client: PostApiClient, post_id: int
+    ) -> None:
+        post = post_client.get(post_id=post_id)
+        assert post.id == post_id
+        assert post.title
+        assert post.body
 
+
+@allure.feature("Posts API")
+@allure.story("Retrieve All Posts")
 @pytest.mark.api
 class TestGetAllPosts:
     def test_returns_non_empty_list(self, post_client: PostApiClient) -> None:
@@ -37,6 +51,8 @@ class TestGetAllPosts:
         assert all(p.user_id > 0 for p in posts)
 
 
+@allure.feature("Posts API")
+@allure.story("Create Post")
 @pytest.mark.api
 class TestCreatePost:
     def test_echoes_payload_fields(self, post_client: PostApiClient) -> None:
@@ -48,7 +64,20 @@ class TestCreatePost:
         post = post_client.create(CreatePostRequest.make())
         assert post.id > 0
 
+    @pytest.mark.parametrize("title,body", [
+        ("Short", "Brief content."),
+        ("A" * 80, "Body with a maximum-length title."),
+        ("Unicode: café 北京", "Body content with unicode characters."),
+    ])
+    def test_various_payloads_return_generated_id(
+        self, post_client: PostApiClient, title: str, body: str
+    ) -> None:
+        post = post_client.create(CreatePostRequest.make(title=title, body=body))
+        assert post.id > 0
 
+
+@allure.feature("Posts API")
+@allure.story("Update Post")
 @pytest.mark.api
 class TestUpdatePost:
     def test_updated_title_is_reflected(self, post_client: PostApiClient) -> None:
@@ -57,6 +86,8 @@ class TestUpdatePost:
         assert post.title == "Updated Title"
 
 
+@allure.feature("Posts API")
+@allure.story("Delete Post")
 @pytest.mark.api
 class TestDeletePost:
     def test_delete_returns_none(self, post_client: PostApiClient) -> None:

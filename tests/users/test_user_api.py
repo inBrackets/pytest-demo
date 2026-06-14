@@ -1,3 +1,4 @@
+import allure
 import pytest
 
 from core.exceptions import ApiError
@@ -5,6 +6,8 @@ from users.api.user_client import UserApiClient
 from users.models.user_model import CreateUserRequest
 
 
+@allure.feature("Users API")
+@allure.story("Retrieve User by ID")
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetUser:
@@ -21,7 +24,18 @@ class TestGetUser:
             user_client.get(user_id=9999)
         assert exc.value.status_code == 404
 
+    @pytest.mark.parametrize("user_id", [1, 3, 5, 7, 10])
+    def test_valid_id_returns_matching_user(
+        self, user_client: UserApiClient, user_id: int
+    ) -> None:
+        user = user_client.get(user_id=user_id)
+        assert user.id == user_id
+        assert user.name
+        assert user.email
 
+
+@allure.feature("Users API")
+@allure.story("Retrieve All Users")
 @pytest.mark.api
 class TestGetAllUsers:
     def test_returns_non_empty_list(self, user_client: UserApiClient) -> None:
@@ -33,6 +47,8 @@ class TestGetAllUsers:
         assert all(u.id > 0 for u in users)
 
 
+@allure.feature("Users API")
+@allure.story("Create User")
 @pytest.mark.api
 class TestCreateUser:
     def test_echoes_payload_fields(self, user_client: UserApiClient) -> None:
@@ -45,7 +61,20 @@ class TestCreateUser:
         user = user_client.create(CreateUserRequest.make())
         assert user.id > 0
 
+    @pytest.mark.parametrize("name,email", [
+        ("Alice Smith", "alice@example.com"),
+        ("Bob O'Brien", "bob@example.com"),
+        ("María García", "maria@example.com"),
+    ])
+    def test_various_names_are_echoed(
+        self, user_client: UserApiClient, name: str, email: str
+    ) -> None:
+        user = user_client.create(CreateUserRequest.make(name=name, email=email))
+        assert user.name == name
 
+
+@allure.feature("Users API")
+@allure.story("Update User")
 @pytest.mark.api
 class TestUpdateUser:
     def test_updated_name_is_reflected(self, user_client: UserApiClient) -> None:
@@ -54,6 +83,8 @@ class TestUpdateUser:
         assert user.name == "Updated Name"
 
 
+@allure.feature("Users API")
+@allure.story("Delete User")
 @pytest.mark.api
 class TestDeleteUser:
     def test_delete_returns_none(self, user_client: UserApiClient) -> None:

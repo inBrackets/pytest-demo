@@ -29,10 +29,12 @@ The design prioritises extensibility: adding a new API backend requires one new 
 | Test structure        | `pytest` classes (`class TestXxx:`) — not `unittest.TestCase`                     |
 | Failure artefacts     | Screenshot + Playwright trace captured automatically and attached to Allure       |
 | Flaky test retry      | pytest-rerunfailures, 1 retry by default (configurable in `pyproject.toml`)       |
-| Test markers          | `smoke`, `ui`, `api` — registered in `pyproject.toml`                            |
+| Test markers          | `smoke`, `ui`, `api`, `slow`, `flaky`, `visual` — registered in `pyproject.toml` |
 | Type annotations      | Type hints throughout; mypy strict mode enforced (`[tool.mypy] strict = true`)    |
 | Logging               | Python `logging` module; `log_cli = true`; logs attached to Allure for every test |
-| Response validation   | `BaseApiClient` always calls `model_validate()` on every response before returning |
+| Response validation   | `BaseApiClient._validated()` wraps every `model_validate()`; attaches raw JSON to Allure on `ValidationError` |
+| Flaky test detection  | `pytest_runtest_logreport` hook labels Allure results and prints terminal summary for tests that pass after `--reruns` |
+| Visual regression     | Playwright `to_have_screenshot()` snapshot tests; `--update-snapshots` to regenerate baselines |
 
 ---
 
@@ -76,7 +78,8 @@ pytest-demo/
 │   ├── ae_base_client.py       # AE-specific REST base (thin wrapper over BaseApiClient)
 │   ├── ae_models.py            # shared AE response models (AeBaseResponse, AeMessageResponse)
 │   ├── exceptions.py           # ApiError
-│   └── config.py               # Settings (Pydantic BaseSettings)
+│   ├── config.py               # Settings (Pydantic BaseSettings)
+│   └── state_validators.py     # StateValidator — reusable UI and URL assertion helpers
 │
 ├── models/
 │   └── base_model.py           # AppBaseModel — shared alias + camelCase config
@@ -130,7 +133,8 @@ pytest-demo/
     │   ├── test_product_detail_ui.py
     │   ├── test_cart_ui.py
     │   ├── test_categories_brands_ui.py
-    │   └── test_subscription_ui.py
+    │   ├── test_subscription_ui.py
+    │   └── test_product_visual.py      # visual regression snapshot tests
     ├── home/
     │   ├── conftest.py
     │   └── test_home_ui.py
@@ -257,17 +261,23 @@ Every `_get` / `_post` / `_put` / `_patch` method (single-object response):
    the payload with `payload.model_dump(by_alias=True)` to produce camelCase keys
    (`userId`, not `user_id`) as required by the API. Plain `model_dump()` would send
    snake_case keys and silently fail on any real backend.
-3. Raises `ApiError` (see below) on non-2xx status codes.
-4. Calls `self._response_model.model_validate(response.json())` and returns the result.
+3. Raises `ApiError` on non-2xx status codes **and attaches the raw response body to Allure**
+   as a `TEXT` attachment named `error-response-{status}`. This means every API failure in
+   the Allure report includes the full error payload for post-mortem analysis without
+   needing to reproduce the failure.
+4. Calls `self._validated(response.json(), url)` and returns the result. `_validated` is a
+   thin wrapper around `model_validate` that catches `ValidationError`, attaches the raw JSON
+   to Allure as `schema-validation-failure`, then re-raises. This surfaces the actual
+   response body when the API returns an unexpected shape.
 
 Step 3 must precede step 4: a non-2xx body (e.g. `{}` from a 404) would fail
 `model_validate` with a Pydantic `ValidationError` before `ApiError` is ever raised,
 making `pytest.raises(ApiError)` unreachable.
 
 `_get_many` (list response) differs at step 4 — a JSON array cannot be passed to
-`model_validate` on a single-item model. The implementation validates each element:
+`model_validate` on a single-item model. The implementation calls `_validated` per element:
 ```python
-return [self._response_model.model_validate(item) for item in response.json()]
+return [self._validated(item, url) for item in response.json()]
 ```
 
 `_delete` follows steps 1, 2, and 3 only — it returns `None` so there is no response
@@ -721,6 +731,55 @@ conftest instead of the pre-authenticated `page`.
 Because it owns its context, it manages its own tracing inline rather than delegating
 to `attach_trace_on_failure` (which only covers contexts created via the root `browser_context`).
 
+### Resource Cleanup Registry
+
+`ResourceRegistry` (defined in root `conftest.py`) provides a LIFO cleanup guarantee for
+tests that create multiple resources and cannot rely on a single `yield` teardown.
+
+```python
+@pytest.fixture
+def resource_registry() -> Generator[ResourceRegistry, None, None]:
+    registry = ResourceRegistry()
+    yield registry
+    registry.cleanup_all()   # runs in reverse registration order after the test
+```
+
+Usage in a test:
+
+```python
+def test_account_lifecycle(
+    resource_registry: ResourceRegistry,
+    ae_account_client: AeAccountClient,
+) -> None:
+    payload = AeCreateAccountRequest.make()
+    ae_account_client.create_account(payload)
+
+    # Register cleanup immediately after creation — before any assertion.
+    resource_registry.register(
+        "account",
+        payload.email,
+        lambda: ae_account_client.delete_account(
+            email=payload.email, password=payload.password
+        ),
+    )
+
+    response = ae_account_client.get_user_detail(email=payload.email)
+    assert response.user.email == payload.email
+    # cleanup_all() runs at teardown regardless of whether the assert passed
+```
+
+Key design decisions:
+- **LIFO order** — resources are cleaned up in reverse registration order so nested
+  dependencies (e.g. an order that depends on an account) are torn down correctly.
+- **Exception isolation** — each cleanup call is wrapped in `try/except`; a failed
+  cleanup is logged as WARNING but does not prevent subsequent cleanups from running.
+- **Explicit registration** — resources must be registered immediately after creation,
+  before any assertion. An assertion failure between creation and `register()` would
+  leave an orphaned resource. The pattern `create → register → assert` enforces this.
+
+`resource_registry` is function-scoped and opt-in. It is not autouse — only tests that
+explicitly request it pay the overhead of the registry object.
+
 ### Test helper functions — use `helpers.py`, not `conftest.py`
 
 Non-fixture helper functions shared within a test folder belong in a `helpers.py` module,
@@ -747,6 +806,50 @@ def add_product_and_checkout(page: Page, settings: Settings) -> None:
 # tests/checkout/test_checkout_ui.py
 from tests.checkout.helpers import add_product_and_checkout  # ← import from helpers, not conftest
 ```
+
+### `core/state_validators.py` — explicit post-action assertions
+
+`StateValidator` provides named, Allure-wrapped assertion helpers for common
+post-action checks. Each method creates an `allure.step` so the assertion appears in
+the report timeline with a human-readable label, and logs at INFO level for the test log.
+
+```python
+class StateValidator:
+    @staticmethod
+    def assert_logged_in(page: Page) -> None:
+        with allure.step("Assert authenticated session is active"):
+            expect(page.locator("a[href='/logout']")).to_be_visible()
+
+    @staticmethod
+    def assert_logged_out(page: Page) -> None:
+        with allure.step("Assert no authenticated session"):
+            expect(page.locator("a[href='/logout']")).not_to_be_visible()
+            expect(page.locator("a[href='/login']")).to_be_visible()
+
+    @staticmethod
+    def assert_url_contains(page: Page, fragment: str) -> None: ...
+
+    @staticmethod
+    def assert_url_excludes(page: Page, fragment: str) -> None: ...
+
+    @staticmethod
+    def assert_text_visible(page: Page, text: str) -> None: ...
+```
+
+Usage in a test:
+
+```python
+from core.state_validators import StateValidator
+
+def test_logout_redirects_to_login(self, page: Page, ...) -> None:
+    page.locator("a[href='/logout']").click()
+    StateValidator.assert_logged_out(page)
+    StateValidator.assert_url_contains(page, "/login")
+```
+
+`StateValidator` methods use only Playwright `expect()` and standard assertions — they
+have no dependencies on specific page objects and are usable from any test. The class
+exists purely for namespace organisation; all methods are `@staticmethod`.
 
 `tests/checkout/conftest.py` keeps only fixture definitions (`registered_page`, etc.).
 `registered_page` is a regular fixture (not a generator) because it has no teardown — it
@@ -820,11 +923,42 @@ they are mutually exclusive. The allure results directory is set in `pytest_conf
 (not via `addopts`) so it resolves to an absolute path under `output/` regardless of
 the working directory.
 
+### Flaky Test Detection
+
+A `pytest_runtest_logreport` hook in root `conftest.py` turns invisible retries into
+observable signal in both the Allure report and the terminal.
+
+```
+test_foo FAILED  → outcome == "rerun"   → node ID added to _flaky_nodeids set
+test_foo PASSED  → node ID in set       → allure.dynamic.label("flakiness", "flaky")
+                                        → node ID removed from set
+```
+
+When `--reruns` is active and a test fails then passes:
+- **Allure label** `flakiness=flaky` is attached to the final passing result so the report
+  surface shows the test as "passed but unstable" rather than simply "passed".
+- **Terminal summary** — `pytest_terminal_summary` prints a `tests that passed after retry
+  (flaky)` section at the bottom of the run output listing each affected node ID.
+
+Tests with known, accepted instability can be tagged explicitly with `@pytest.mark.flaky`
+and excluded or isolated with `-m "not flaky"`. The hook still detects them at runtime;
+the marker is documentary.
+
+`allure.dynamic.label` requires an active Allure test context. Conftest hooks have higher
+pytest priority than installed plugins, so the hook fires while allure-pytest's listener
+still holds the test result open. Under xdist (where tests run in worker processes),
+`_flaky_nodeids` in the controller process is still populated via relayed
+`pytest_runtest_logreport` events, so the terminal summary works; the Allure label call
+is wrapped in `contextlib.suppress(Exception)` to degrade gracefully if the worker's
+allure context is not accessible from the controller.
+
 ---
 
 ## Test Class Shape
 
 ```python
+@allure.feature("Users API")
+@allure.story("Retrieve User by ID")
 @pytest.mark.api
 @pytest.mark.smoke
 class TestGetUser:
@@ -835,7 +969,52 @@ class TestGetUser:
     def test_name_is_non_empty(self, user_client: UserApiClient) -> None:
         user = user_client.get(user_id=1)
         assert user.name
+
+    @pytest.mark.parametrize("user_id", [1, 3, 5, 7, 10])
+    def test_valid_id_returns_matching_user(
+        self, user_client: UserApiClient, user_id: int
+    ) -> None:
+        user = user_client.get(user_id=user_id)
+        assert user.id == user_id
+        assert user.name
+        assert user.email
 ```
+
+### Allure feature/story metadata
+
+Class-level `@allure.feature` and `@allure.story` decorators are applied to every test
+class. They do not affect test execution but populate Allure's **Features** and
+**Stories** tree, which groups results by domain rather than by file path.
+
+```
+@allure.feature("Posts API")   → top-level grouping in the Features tab
+@allure.story("Create Post")   → sub-grouping under the feature
+```
+
+`@allure.feature` / `@allure.story` are placed before pytest markers so the decorator
+stack reads domain → runner concern top-to-bottom.
+
+### Parametrized tests
+
+`@pytest.mark.parametrize` multiplies a single test body across input variants without
+duplicating test classes. Each parameter set appears as a separate node in the Allure
+report and in the pytest output.
+
+```python
+@pytest.mark.parametrize("title,body", [
+    ("Short", "Brief content."),
+    ("A" * 80, "Body with a maximum-length title."),
+    ("Unicode: café 北京", "Body content with unicode characters."),
+])
+def test_various_payloads_return_generated_id(
+    self, post_client: PostApiClient, title: str, body: str
+) -> None:
+    post = post_client.create(CreatePostRequest.make(title=title, body=body))
+    assert post.id > 0
+```
+
+Parametrize for input variety (IDs, payloads, user names) — not for assertion variety.
+Each assertion should remain a separate test method so failures are isolated.
 
 ### Asserting on the browser URL
 
@@ -858,7 +1037,7 @@ the `settings` fixture explicitly rather than reading `page_object._settings`.
 
 ---
 
-## Allure Step Decoration
+## Allure Step Decoration and Report Metadata
 
 Every public method on `BasePage` subclasses and `BaseApiClient` subclasses should be
 decorated with `@allure.step(...)` so the Allure report shows a human-readable action
@@ -876,6 +1055,21 @@ def get(self, user_id: int) -> UserResponse: ...
 
 Each method applies `@allure.step` explicitly. The decorator is not inheritable —
 it must be applied at the point of definition in each subclass method.
+
+### Dynamic Allure attributes — flaky label and error attachments
+
+`allure.dynamic.*` can be called anywhere inside a running test to modify the active
+Allure result. The framework uses two dynamic calls automatically:
+
+- **`allure.dynamic.label("flakiness", "flaky")`** — added by the `pytest_runtest_logreport`
+  hook when a test passes after a `--reruns` retry. No per-test annotation required.
+- **`allure.attach(...)`** — added by `_raise_for_status` (raw error response body on HTTP
+  errors) and `_validated` (raw JSON on schema validation failure). Both attach to the
+  currently active Allure step automatically.
+
+`StateValidator` methods use `with allure.step(...)` (context manager, not decorator)
+because they are static utility functions called from inside test bodies, not methods
+decorated at definition time. This is the correct usage of the context manager form.
 
 **Do not mix `@allure.step` with `with allure.step()` inside the same method.** The
 decorator already wraps the entire method body in a step; adding a `with allure.step()`
@@ -1026,6 +1220,56 @@ remains untouched.
 
 ---
 
+## Visual Regression Testing
+
+`tests/products/test_product_visual.py` contains snapshot tests using Playwright's
+built-in pixel comparison. Tests are tagged `@pytest.mark.visual` so they can be
+excluded from normal runs with `-m "not visual"`.
+
+```python
+@pytest.mark.ui
+@pytest.mark.visual
+class TestProductVisualRegression:
+    def test_home_page_hero_banner(self, page: Page, settings: Settings) -> None:
+        HomePage(page=page, settings=settings).navigate()
+        expect(page.locator(".item.active")).to_have_screenshot(
+            "home-hero.png",
+            threshold=0.1,   # 10 % pixel-diff tolerance — handles anti-aliasing noise
+        )
+
+    def test_product_listing_grid(self, page: Page, settings: Settings) -> None:
+        ProductPage(page=page, settings=settings).navigate()
+        expect(page.locator(".features_items")).to_have_screenshot(
+            "product-listing.png",
+            threshold=0.1,
+        )
+```
+
+### Snapshot lifecycle
+
+| Step | Command |
+|------|---------|
+| Generate baselines (first time) | `uv run pytest tests/products/test_product_visual.py --update-snapshots` |
+| Normal comparison run | `uv run pytest -m visual` |
+| Regenerate after intentional UI change | `uv run pytest tests/products/test_product_visual.py --update-snapshots` |
+| Exclude from full suite | `uv run pytest -m "not visual"` |
+
+Baseline PNGs are stored in `tests/products/__snapshots__/` next to the test file
+and **must be committed** to source control — CI compares against them on every push.
+
+### What snapshot tests catch
+
+Functional tests exercise behaviour but are blind to layout changes: a button that moves
+50 px, an input that becomes hidden, or a font size that regresses. `to_have_screenshot`
+fails on any pixel difference beyond `threshold`, catching accidental CSS regressions
+that pass all functional assertions.
+
+`threshold=0.1` (10 %) tolerates sub-pixel anti-aliasing differences between runs
+without masking real regressions. Tighten it for pixel-critical components; raise it
+for areas with animated or variable content (banners, carousels).
+
+---
+
 ## CI / GitHub Actions
 
 The workflow at `.github/workflows/ci.yml` triggers on every push and on manual dispatch.
@@ -1063,3 +1307,7 @@ The first run will not have trend history (no previous `gh-pages` branch). All s
 3. `uv run pytest -n auto` — parallel run; confirms no shared-state fixture collisions.
 4. `allure serve output/allure-results` — report renders with steps, logs, and artefacts.
 5. `uv run pytest -m smoke --co -q` — confirms marker collection covers expected tests.
+6. `uv run pytest --reruns 1 --reruns-delay 2 -v` — flaky detection run; check terminal summary and Allure `flakiness` label on any retry-passed test.
+7. `uv run pytest tests/products/test_product_visual.py --update-snapshots` — generate visual regression baselines (first time only).
+8. `uv run pytest -m visual` — compare against baselines; fails if layout has drifted.
+9. `uv run pytest -m "not visual"` — standard run excluding snapshot tests.
