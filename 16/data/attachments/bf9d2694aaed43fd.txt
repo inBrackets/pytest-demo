@@ -1,0 +1,1 @@
+2026-06-14 01:59:00 DEBUG    products.pages.home_page: Navigating to https://automationexercise.com
