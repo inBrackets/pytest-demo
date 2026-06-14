@@ -38,15 +38,15 @@ class TestPlaceOrderLoginBeforeCheckout:
 
     def test_order_placed_after_login(
         self,
-        registered_page: Page,
+        page: Page,
         settings: Settings,
     ) -> None:
-        add_product_and_checkout(registered_page, settings)
-        checkout = CheckoutPage(page=registered_page, settings=settings)
+        add_product_and_checkout(page, settings)
+        checkout = CheckoutPage(page=page, settings=settings)
         checkout.is_loaded()
         checkout.add_comment("Login before checkout test")
         checkout.place_order()
-        payment = PaymentPage(page=registered_page, settings=settings)
+        payment = PaymentPage(page=page, settings=settings)
         payment.is_loaded()
         payment.fill_payment()
         payment.confirm_payment()

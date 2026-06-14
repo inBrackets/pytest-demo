@@ -1,6 +1,6 @@
-import allure
 from typing import Self
 
+import allure
 from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage

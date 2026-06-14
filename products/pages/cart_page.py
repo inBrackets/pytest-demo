@@ -42,10 +42,14 @@ class CartPage(BasePage):
     def _checkout_button(self) -> Locator:
         return self._page.locator("a.check_out")
 
+    @property
+    def _shopping_cart_breadcrumb(self) -> Locator:
+        return self._page.locator("li:has-text('Shopping Cart')")
+
     # Actions
     @allure.step("Verify cart page is loaded")
     def is_loaded(self) -> None:
-        expect(self._page.locator("li:has-text('Shopping Cart')")).to_be_visible()
+        expect(self._shopping_cart_breadcrumb).to_be_visible()
 
     @allure.step("Get number of products in cart")
     def get_product_count(self) -> int:

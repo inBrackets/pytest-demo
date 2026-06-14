@@ -102,6 +102,7 @@ class HomePage(BasePage):
     @allure.step("Scroll to top of page")
     def scroll_to_top(self) -> None:
         self._page.evaluate("window.scrollTo(0, 0)")
+        expect(self._hero_heading).to_be_visible()
 
     @allure.step("Get hero banner text")
     def get_hero_text(self) -> str:
