@@ -28,7 +28,7 @@ class BasePage(ABC):
     def navigate(self) -> Self:
         with allure.step(f"Navigate to {self.url}"):
             self._logger.debug("Navigating to %s", self.url)
-            self._page.goto(self.url, wait_until="domcontentloaded")
+            self._page.goto(self.url, wait_until="domcontentloaded", timeout=self._settings.navigation_timeout)
             self._dismiss_consent_banner()
             self.is_loaded()
             return self
@@ -37,7 +37,7 @@ class BasePage(ABC):
         locator.click()
         self._page.wait_for_load_state("domcontentloaded")
         if self._page.url.split("?")[0].rstrip("/") != target_url.rstrip("/"):
-            self._page.goto(target_url, wait_until="domcontentloaded")
+            self._page.goto(target_url, wait_until="domcontentloaded", timeout=self._settings.navigation_timeout)
         self._dismiss_consent_banner()
 
     def _dismiss_consent_banner(self) -> None:

@@ -7,8 +7,7 @@ from typing import Any, Callable, Generator
 
 import allure
 import pytest
-from filelock import FileLock
-from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Page, Playwright
+from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Locator, Page, Playwright
 
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
@@ -21,6 +20,15 @@ _logger = logging.getLogger(__name__)
 _TEST_PASSWORD = "Test1234!"
 _rerun_nodeids: set[str] = set()
 _passed_after_retry: set[str] = set()
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--update-snapshots",
+        action="store_true",
+        default=False,
+        help="Overwrite visual regression snapshot baselines with current screenshots.",
+    )
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -203,25 +211,24 @@ def auth_state(
     settings: Settings,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Path:
-    path = tmp_path_factory.getbasetemp() / "storage_state.json"
-    lock = FileLock(str(path) + ".lock")
-    with lock:
-        if not path.exists():
-            context = browser.new_context()
-            try:
-                pw_page = context.new_page()
-                LoginPage(pw_page, settings).navigate().login(
-                    username=live_account["email"],
-                    password=live_account["password"],
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER", "master")
+    path = tmp_path_factory.getbasetemp() / f"storage_state_{worker_id}.json"
+    if not path.exists():
+        context = browser.new_context()
+        try:
+            pw_page = context.new_page()
+            LoginPage(pw_page, settings).navigate().login(
+                username=live_account["email"],
+                password=live_account["password"],
+            )
+            if "/login" in pw_page.url:
+                raise RuntimeError(
+                    f"Session login failed — still at {pw_page.url!r}. "
+                    "All authenticated tests would receive an unauthenticated context."
                 )
-                if "/login" in pw_page.url:
-                    raise RuntimeError(
-                        f"Session login failed — still at {pw_page.url!r}. "
-                        "All authenticated tests would receive an unauthenticated context."
-                    )
-                context.storage_state(path=str(path))
-            finally:
-                context.close()
+            context.storage_state(path=str(path))
+        finally:
+            context.close()
     return path
 
 
@@ -297,5 +304,33 @@ def api_context(
     )
     yield context
     context.dispose()
+
+
+@pytest.fixture
+def assert_snapshot(
+    request: pytest.FixtureRequest,
+) -> Generator[Callable[[Locator | Page, str], None], None, None]:
+    update = request.config.getoption("--update-snapshots", default=False)
+    snapshots_dir = request.path.parent / "__snapshots__"
+
+    def _assert(target: Locator | Page, name: str) -> None:
+        if isinstance(target, Page):
+            current = target.screenshot()
+        else:
+            target.wait_for(state="visible")
+            current = target.screenshot()
+        baseline = snapshots_dir / name
+        if update or not baseline.exists():
+            baseline.parent.mkdir(parents=True, exist_ok=True)
+            baseline.write_bytes(current)
+            if not update:
+                pytest.skip(f"Baseline created: {name}")
+        else:
+            assert current == baseline.read_bytes(), (
+                f"Screenshot mismatch for '{name}'. "
+                "Re-run with --update-snapshots to refresh the baseline."
+            )
+
+    yield _assert
 
 
