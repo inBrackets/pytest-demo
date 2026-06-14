@@ -54,8 +54,9 @@ class CartPage(BasePage):
 
     @allure.step("Remove product at index {index}")
     def remove_product(self, index: int = 0) -> None:
+        row = self._cart_rows.nth(index)
         self._delete_buttons.nth(index).click()
-        self._page.wait_for_load_state("domcontentloaded")
+        row.wait_for(state="detached")
 
     @allure.step("Clear all items from cart")
     def clear_cart(self) -> None:

@@ -58,6 +58,7 @@ class ProductPage(BasePage):
     @allure.step("Click View Product at index {index}")
     def click_view_product(self, index: int = 0) -> None:
         self._view_product_links.nth(index).click()
+        self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Add product at index {index} to cart")
     def add_to_cart(self, index: int = 0) -> None:
@@ -77,8 +78,9 @@ class ProductPage(BasePage):
 
     @allure.step("Click category '{category}' then subcategory '{subcategory}'")
     def select_category(self, category: str, subcategory: str) -> None:
-        self._page.locator(f"#accordian a[href='#{category}']").click()
         sub = self._page.locator(f"#{category} a", has_text=subcategory)
+        if not sub.is_visible():
+            self._page.locator(f"#accordian a[href='#{category}']").click()
         sub.wait_for(state="visible")
         sub.click()
         self._page.wait_for_load_state("domcontentloaded")

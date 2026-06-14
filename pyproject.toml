@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pytest",
     "pytest-playwright",
+    "playwright>=1.23",
     "pydantic>=2",
     "pydantic-settings",
     "allure-pytest",
