@@ -91,11 +91,37 @@ def resource_registry() -> Generator[ResourceRegistry, None, None]:
     registry.cleanup_all()
 
 
+def _node_slug(item: pytest.Item) -> str:
+    return item.nodeid.replace("/", "_").replace("::", "_").replace("[", "_").replace("]", "")
+
+
 def _save_screenshot(item: pytest.Item, png: bytes) -> None:
-    slug = item.nodeid.replace("/", "_").replace("::", "_").replace("[", "_").replace("]", "")
     screenshots_dir = item.config.rootpath / "output" / "screenshots"
     screenshots_dir.mkdir(parents=True, exist_ok=True)
-    (screenshots_dir / f"{slug}.png").write_bytes(png)
+    (screenshots_dir / f"{_node_slug(item)}.png").write_bytes(png)
+
+
+def _capture_trace(item: pytest.Item) -> None:
+    """Stop active tracing and attach the zip during the call phase.
+
+    Called from pytest_runtest_makereport so the attachment lands in the test
+    body in Allure, not in the collapsed Tear Down container.
+    """
+    if not isinstance(item, pytest.Function):
+        return
+    ctx = item.funcargs.get("browser_context") or item.funcargs.get("unauthenticated_browser_context")
+    if not isinstance(ctx, BrowserContext):
+        return
+    try:
+        trace_zip = item.config.rootpath / "output" / "traces" / f"{_node_slug(item)}.zip"
+        trace_zip.parent.mkdir(parents=True, exist_ok=True)
+        ctx.tracing.stop(path=str(trace_zip))
+        allure.attach(
+            trace_zip.read_bytes(), name="trace", attachment_type=allure.attachment_type.ZIP
+        )
+        setattr(item, "_trace_stopped", True)
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(wrapper=True)
@@ -104,16 +130,16 @@ def pytest_runtest_makereport(
 ) -> Generator[None, pytest.TestReport, pytest.TestReport]:
     rep: pytest.TestReport = yield
     setattr(item, f"rep_{rep.when}", rep)
-    if rep.when == "call" and rep.failed:
-        if isinstance(item, pytest.Function):
-            pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
-            if isinstance(pw_page, Page):
-                try:
-                    png = pw_page.screenshot()
-                    allure.attach(png, name="screenshot", attachment_type=allure.attachment_type.PNG)
-                    _save_screenshot(item, png)
-                except Exception:
-                    pass
+    if rep.when == "call" and rep.failed and isinstance(item, pytest.Function):
+        pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
+        if isinstance(pw_page, Page):
+            try:
+                png = pw_page.screenshot()
+                allure.attach(png, name="screenshot", attachment_type=allure.attachment_type.PNG)
+                _save_screenshot(item, png)
+            except Exception:
+                pass
+        _capture_trace(item)
     return rep
 
 
@@ -200,22 +226,18 @@ def auth_state(
 
 
 @pytest.fixture
-def trace_path(tmp_path: Path) -> Path:
-    return tmp_path / "trace.zip"
-
-
-@pytest.fixture
 def browser_context(
     browser: Browser,
     auth_state: Path,
-    trace_path: Path,
     settings: Settings,
+    request: pytest.FixtureRequest,
 ) -> Generator[BrowserContext, None, None]:
     context = browser.new_context(storage_state=str(auth_state))
     context.set_default_timeout(settings.browser_timeout)
     context.tracing.start(screenshots=True, snapshots=True)
     yield context
-    context.tracing.stop(path=str(trace_path))
+    if not getattr(request.node, "_trace_stopped", False):
+        context.tracing.stop()
     context.close()
 
 
@@ -227,27 +249,27 @@ def page(browser_context: BrowserContext) -> Generator[Page, None, None]:
 
 
 @pytest.fixture
-def unauthenticated_page(
+def unauthenticated_browser_context(
     browser: Browser,
     settings: Settings,
-    tmp_path: Path,
     request: pytest.FixtureRequest,
-) -> Generator[Page, None, None]:
+) -> Generator[BrowserContext, None, None]:
     context = browser.new_context()
     context.set_default_timeout(settings.browser_timeout)
-    trace_zip = tmp_path / "trace.zip"
     context.tracing.start(screenshots=True, snapshots=True)
-    pw_page = context.new_page()
-    yield pw_page
-    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        context.tracing.stop(path=str(trace_zip))
-        allure.attach.file(  # type: ignore[no-untyped-call]
-            str(trace_zip), name="trace", attachment_type=allure.attachment_type.ZIP
-        )
-    else:
+    yield context
+    if not getattr(request.node, "_trace_stopped", False):
         context.tracing.stop()
-    pw_page.close()
     context.close()
+
+
+@pytest.fixture
+def unauthenticated_page(
+    unauthenticated_browser_context: BrowserContext,
+) -> Generator[Page, None, None]:
+    pw_page = unauthenticated_browser_context.new_page()
+    yield pw_page
+    pw_page.close()
 
 
 @pytest.fixture
@@ -277,16 +299,3 @@ def api_context(
     context.dispose()
 
 
-@pytest.fixture(autouse=True)
-def attach_trace_on_failure(
-    request: pytest.FixtureRequest, trace_path: Path
-) -> Generator[None, None, None]:
-    yield
-    if not (getattr(request.node, "rep_call", None) and request.node.rep_call.failed):
-        return
-    if trace_path.exists():
-        allure.attach.file(  # type: ignore[no-untyped-call]
-            str(trace_path),
-            name="trace",
-            attachment_type=allure.attachment_type.ZIP,
-        )
