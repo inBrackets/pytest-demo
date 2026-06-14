@@ -31,18 +31,6 @@ class HomePage(BasePage):
         return self._page.locator("a[href='/contact_us']").first
 
     @property
-    def _subscribe_email(self) -> Locator:
-        return self._page.locator("input#susbscribe_email")
-
-    @property
-    def _subscribe_button(self) -> Locator:
-        return self._page.locator("button#subscribe")
-
-    @property
-    def _subscribe_success(self) -> Locator:
-        return self._page.locator("div#success-subscribe")
-
-    @property
     def _scroll_up_arrow(self) -> Locator:
         return self._page.locator("a#scrollUp")
 
@@ -53,14 +41,6 @@ class HomePage(BasePage):
     @property
     def _recommended_add_to_cart(self) -> Locator:
         return self._page.locator("#recommended-item-carousel .add-to-cart")
-
-    @property
-    def _cart_modal(self) -> Locator:
-        return self._page.locator("div.modal-content")
-
-    @property
-    def _cart_modal_link(self) -> Locator:
-        return self._page.locator("div.modal-content a[href='/view_cart']")
 
     # Actions
     @allure.step("Verify home page is loaded")
@@ -82,12 +62,6 @@ class HomePage(BasePage):
     @allure.step("Click 'Contact us' in navigation")
     def go_to_contact_us(self) -> None:
         self._nav_contact_us.click()
-
-    @allure.step("Subscribe with email {email}")
-    def subscribe(self, email: str) -> None:
-        self._subscribe_email.fill(email)
-        self._subscribe_button.click()
-        expect(self._subscribe_success).to_be_visible()
 
     @allure.step("Scroll to bottom of page")
     def scroll_to_bottom(self) -> None:
@@ -112,7 +86,3 @@ class HomePage(BasePage):
     def add_recommended_to_cart(self, index: int = 0) -> None:
         self._recommended_add_to_cart.nth(index).click()
         self._cart_modal.wait_for(state="visible")
-
-    @allure.step("View cart from modal")
-    def view_cart_from_modal(self) -> None:
-        self._cart_modal_link.click()

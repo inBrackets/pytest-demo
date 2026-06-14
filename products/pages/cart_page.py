@@ -27,18 +27,6 @@ class CartPage(BasePage):
         return self._page.locator("a.cart_quantity_delete")
 
     @property
-    def _subscribe_email(self) -> Locator:
-        return self._page.locator("input#susbscribe_email")
-
-    @property
-    def _subscribe_button(self) -> Locator:
-        return self._page.locator("button#subscribe")
-
-    @property
-    def _subscribe_success(self) -> Locator:
-        return self._page.locator("div#success-subscribe")
-
-    @property
     def _checkout_button(self) -> Locator:
         return self._page.locator("a.check_out")
 
@@ -67,23 +55,17 @@ class CartPage(BasePage):
     @allure.step("Remove product at index {index}")
     def remove_product(self, index: int = 0) -> None:
         self._delete_buttons.nth(index).click()
-        self._page.wait_for_load_state("networkidle")
+        self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Clear all items from cart")
     def clear_cart(self) -> None:
-        while True:
+        for _ in range(50):
             self._page.goto(self.url, wait_until="domcontentloaded")
             self._dismiss_consent_banner()
             if self._delete_buttons.count() == 0:
                 break
             self._delete_buttons.first.click(force=True)
-            self._page.wait_for_load_state("networkidle")
-
-    @allure.step("Subscribe with email {email}")
-    def subscribe(self, email: str) -> None:
-        self._subscribe_email.fill(email)
-        self._subscribe_button.click()
-        expect(self._subscribe_success).to_be_visible()
+            self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Proceed to checkout")
     def proceed_to_checkout(self) -> None:

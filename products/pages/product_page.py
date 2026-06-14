@@ -35,16 +35,8 @@ class ProductPage(BasePage):
         return self._page.locator(".productinfo")
 
     @property
-    def _cart_modal(self) -> Locator:
-        return self._page.locator("div.modal-content")
-
-    @property
     def _continue_shopping_button(self) -> Locator:
         return self._page.locator("button.close-modal")
-
-    @property
-    def _cart_modal_link(self) -> Locator:
-        return self._page.locator("div.modal-content a[href='/view_cart']")
 
     # Actions
     @allure.step("Verify product page is loaded")
@@ -61,7 +53,7 @@ class ProductPage(BasePage):
         self._logger.debug("Searching for %s", product_name)
         self._search_input.fill(product_name)
         self._search_button.click()
-        self._page.wait_for_load_state("networkidle")
+        self._page.wait_for_load_state("domcontentloaded")
 
     @allure.step("Click View Product at index {index}")
     def click_view_product(self, index: int = 0) -> None:
@@ -77,10 +69,6 @@ class ProductPage(BasePage):
     @allure.step("Continue shopping from modal")
     def continue_shopping(self) -> None:
         self._continue_shopping_button.click()
-
-    @allure.step("View cart from modal")
-    def view_cart_from_modal(self) -> None:
-        self._cart_modal_link.click()
 
     @allure.step("Click brand '{brand_name}' in sidebar")
     def click_brand(self, brand_name: str) -> None:

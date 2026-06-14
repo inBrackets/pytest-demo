@@ -68,7 +68,7 @@ class PaymentPage(BasePage):
     @allure.step("Confirm payment")
     def confirm_payment(self) -> None:
         self._pay_button.click()
-        expect(self._success_message).to_be_visible(timeout=15_000)
+        expect(self._success_message).to_be_visible(timeout=self._settings.browser_timeout)
 
     @allure.step("Download invoice")
     def download_invoice(self) -> str:

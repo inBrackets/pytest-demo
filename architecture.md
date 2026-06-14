@@ -164,8 +164,9 @@ AE_PASSWORD=your_password
 # --- Optional overrides (defaults shown) ---
 API_BASE_URL=https://jsonplaceholder.typicode.com
 UI_BASE_URL=https://automationexercise.com
-BROWSER_HEADLESS=true    # set to false to open a visible browser window
+BROWSER_HEADLESS=true           # set to false to open a visible browser window
 BROWSER_TIMEOUT=30000
+CONSENT_BANNER_TIMEOUT=3000     # max ms to wait for cookie consent dismissal
 API_TIMEOUT=10000
 ```
 
@@ -361,10 +362,18 @@ BasePage (ABC)
   │     subclass calls expect(locator).to_be_visible() on a stable landmark element.
   │     Playwright's built-in retry+timeout handles the wait — do not use time.sleep().
   │     Raises AssertionError/TimeoutError if the element never appears; navigate() propagates it.
-  └── _click_and_navigate(locator, target_url) → None
-        clicks the locator, waits for domcontentloaded, falls back to goto() if the URL
-        didn't change, then always calls _dismiss_consent_banner() regardless of which
-        navigation path was taken.
+  ├── _click_and_navigate(locator, target_url) → None
+  │     clicks the locator, waits for domcontentloaded, falls back to goto() if the URL
+  │     didn't change, then always calls _dismiss_consent_banner() regardless of which
+  │     navigation path was taken.
+  │
+  │   Site-wide footer widget (present on every page):
+  ├── _subscribe_email / _subscribe_button / _subscribe_success  ← locators (private)
+  ├── subscribe(email) → None          ← fills input, clicks button, asserts success banner
+  │
+  │   Add-to-cart modal (shown on any page after adding a product):
+  ├── _cart_modal / _cart_modal_link   ← locators (private)
+  └── view_cart_from_modal() → None   ← clicks the "View Cart" link inside the modal
 ```
 
 #### Locator fields — mandatory convention
@@ -462,9 +471,10 @@ CreatePostRequest(AppBaseModel)
 Settings(pydantic_settings.BaseSettings)
   ├── api_base_url: str        = "https://jsonplaceholder.typicode.com"
   ├── ui_base_url: str         = "https://automationexercise.com"
-  ├── browser_headless: bool   = True    ← False opens a visible browser window
-  ├── browser_timeout: int     = 30_000  ← ms; passed to context.set_default_timeout()
-  ├── api_timeout: int         = 10_000  ← ms; passed to APIRequestContext timeout option
+  ├── browser_headless: bool        = True     ← False opens a visible browser window
+  ├── browser_timeout: int          = 30_000   ← ms; passed to context.set_default_timeout()
+  ├── consent_banner_timeout: int   = 3_000    ← ms; max wait for cookie consent dismissal
+  ├── api_timeout: int              = 10_000   ← ms; passed to APIRequestContext timeout option
   ├── ae_username: str                   ← required; no default — must be set in .env
   ├── ae_password: SecretStr             ← required; no default — SecretStr hides it from logs
   └── model_config = SettingsConfigDict(env_file=".env")
@@ -596,26 +606,43 @@ def auth_state(browser, live_account, settings, tmp_path_factory) -> Path:
                 context.close()   # always close even if login throws
     return path
 
-# trace_path: unique per-test temp file so parallel workers never collide.
-@pytest.fixture
-def trace_path(tmp_path) -> Path:
-    return tmp_path / "trace.zip"
-
 # Override pytest-playwright's browser_context to inject auth, timeouts, and tracing.
+# _trace_stopped guard: _capture_trace (called from the hook on failure) stops the
+# trace and sets a flag on the item. The teardown checks the flag to avoid a
+# double-stop error when tracing.stop() was already called.
 @pytest.fixture
-def browser_context(browser, auth_state, trace_path, settings):
-    context = browser.new_context(storage_state=auth_state)
+def browser_context(browser, auth_state, settings, request):
+    context = browser.new_context(storage_state=str(auth_state))
     context.set_default_timeout(settings.browser_timeout)
     context.tracing.start(screenshots=True, snapshots=True)
     yield context
-    context.tracing.stop(path=str(trace_path))   # explicit path required
+    if not getattr(request.node, "_trace_stopped", False):
+        context.tracing.stop()
     context.close()
 
-# Override pytest-playwright's page. Just creates and closes the page;
-# screenshot capture is handled by pytest_runtest_makereport (see below).
+# Override pytest-playwright's page.
 @pytest.fixture
 def page(browser_context):
     pw_page = browser_context.new_page()
+    yield pw_page
+    pw_page.close()
+
+# unauthenticated_browser_context: fresh context with no auth state, used by
+# tests that operate on public pages. Split from unauthenticated_page so the
+# context is accessible by name via item.funcargs — required for _capture_trace.
+@pytest.fixture
+def unauthenticated_browser_context(browser, settings, request):
+    context = browser.new_context()
+    context.set_default_timeout(settings.browser_timeout)
+    context.tracing.start(screenshots=True, snapshots=True)
+    yield context
+    if not getattr(request.node, "_trace_stopped", False):
+        context.tracing.stop()
+    context.close()
+
+@pytest.fixture
+def unauthenticated_page(unauthenticated_browser_context):
+    pw_page = unauthenticated_browser_context.new_page()
     yield pw_page
     pw_page.close()
 
@@ -629,13 +656,8 @@ def api_context(playwright, settings):
     yield context
     context.dispose()
 
-# pytest_configure runs before any fixture.
-# Creates output directories so they exist for every run (CI and local).
-# Sets the Allure results directory and the per-worker log file path here —
-# using absolute paths derived from config.rootpath so they are correct
-# regardless of the working directory (PyCharm, terminal, CI).
-# Without the per-worker log path, all xdist workers write to the same
-# logs/test.log simultaneously → PermissionError or corrupted output on Windows.
+# pytest_configure creates output directories and sets absolute paths for Allure
+# results and per-worker log files (xdist workers write separate log files).
 def pytest_configure(config):
     output_dir = config.rootpath / "output"
     allure_dir = output_dir / "allure-results"
@@ -650,75 +672,44 @@ def pytest_configure(config):
     log_name = f"test_{worker_id}.log" if worker_id else "test.log"
     config.option.log_file = str(logs_dir / log_name)
 
-# Sets rep_call/rep_setup/rep_teardown on the item for fixture teardown checks,
-# and captures a screenshot directly into the Allure test result on call-phase failure.
-# Screenshot is taken here — not in the page fixture teardown — because allure-pytest
-# keeps the test result open during the call phase. Attachments added in fixture teardown
-# land in the fixture's container (shown only under "Tear Down"), not in the test result.
-# Bytes are captured once and passed to both allure.attach and _save_screenshot to avoid
-# a second Playwright call.
+# On call-phase failure: captures screenshot + Playwright trace and attaches both
+# to the active Allure test result (not to the fixture teardown container).
+# _capture_trace resolves the BrowserContext from item.funcargs, stops tracing to
+# output/traces/<slug>.zip, attaches the zip, and sets _trace_stopped on the item.
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_makereport(item, call):
     rep = yield
     setattr(item, f"rep_{rep.when}", rep)
-    if rep.when == "call" and rep.failed:
+    if rep.when == "call" and rep.failed and isinstance(item, pytest.Function):
         pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
-        if pw_page:
+        if isinstance(pw_page, Page):
             try:
                 png = pw_page.screenshot()
                 allure.attach(png, name="screenshot", attachment_type=allure.attachment_type.PNG)
                 _save_screenshot(item, png)
             except Exception:
                 pass
+        _capture_trace(item)
     return rep
 
-# Writes the screenshot bytes to output/screenshots/<slug>.png so failures can be
-# inspected directly on disk without opening the Allure report.
 def _save_screenshot(item, png: bytes) -> None:
-    slug = item.nodeid.replace("/", "_").replace("::", "_").replace("[", "_").replace("]", "")
+    slug = _node_slug(item)
     screenshots_dir = item.config.rootpath / "output" / "screenshots"
     screenshots_dir.mkdir(parents=True, exist_ok=True)
     (screenshots_dir / f"{slug}.png").write_bytes(png)
 
-# Attaches the Playwright trace after test failure.
-# Takes trace_path as a direct parameter (autouse pulls it in for every test).
-# The exists() guard makes it a no-op for API tests and any test that did not
-# start a tracing session — trace_path is just a Path object with no side effects.
-@pytest.fixture(autouse=True)
-def attach_trace_on_failure(request, trace_path):
-    yield
-    if not (getattr(request.node, "rep_call", None) and request.node.rep_call.failed):
+def _capture_trace(item) -> None:
+    ctx = item.funcargs.get("browser_context") or item.funcargs.get("unauthenticated_browser_context")
+    if not isinstance(ctx, BrowserContext):
         return
-    if trace_path.exists():
-        allure.attach.file(str(trace_path), name="trace",
-                           attachment_type=allure.attachment_type.ZIP)
-```
-
-# unauthenticated_page lives in the ROOT conftest — it is used by tests across
-# multiple feature folders (users, checkout, products) so it must be globally
-# available.  It bypasses auth_state entirely: no storage_state → no session
-# cookie → browser starts unauthenticated.
-# Trace handling is inline (stop+attach on failure, discard on pass) because
-# this fixture owns its own BrowserContext and cannot delegate to
-# attach_trace_on_failure (which only covers contexts created via browser_context).
-# Screenshot on failure is handled by pytest_runtest_makereport, which also
-# checks item.funcargs.get("unauthenticated_page") — no duplication needed here.
-@pytest.fixture
-def unauthenticated_page(browser, settings, tmp_path, request):
-    context = browser.new_context()   # no storage_state — fresh unauthenticated session
-    context.set_default_timeout(settings.browser_timeout)
-    trace_zip = tmp_path / "trace.zip"
-    context.tracing.start(screenshots=True, snapshots=True)
-    pw_page = context.new_page()
-    yield pw_page
-    if getattr(request.node, "rep_call", None) and request.node.rep_call.failed:
-        context.tracing.stop(path=str(trace_zip))
-        allure.attach.file(str(trace_zip), name="trace",
-                           attachment_type=allure.attachment_type.ZIP)
-    else:
-        context.tracing.stop()   # discard trace on pass to save disk space
-    pw_page.close()
-    context.close()
+    try:
+        trace_zip = item.config.rootpath / "output" / "traces" / f"{_node_slug(item)}.zip"
+        trace_zip.parent.mkdir(parents=True, exist_ok=True)
+        ctx.tracing.stop(path=str(trace_zip))
+        allure.attach(trace_zip.read_bytes(), name="trace", attachment_type=allure.attachment_type.ZIP)
+        setattr(item, "_trace_stopped", True)
+    except Exception:
+        pass
 ```
 
 Root `conftest.py` also defines `home_page` — a fixture used across both `tests/home/`
@@ -752,9 +743,10 @@ Tests that exercise the login form itself (credential validation, redirect on su
 error messaging) must start unauthenticated and use `unauthenticated_page` from the root
 conftest instead of the pre-authenticated `page`.
 
-`unauthenticated_page` bypasses `auth_state` so the session cookie is absent.
-Because it owns its context, it manages its own tracing inline rather than delegating
-to `attach_trace_on_failure` (which only covers contexts created via the root `browser_context`).
+`unauthenticated_page` bypasses `auth_state` so the session cookie is absent. It is
+backed by `unauthenticated_browser_context` (a separate named fixture) so that
+`_capture_trace` can resolve the context via `item.funcargs` — the same trace capture
+path used by authenticated tests.
 
 ### Resource Cleanup Registry
 
@@ -923,13 +915,17 @@ making the screenshot appear only under the collapsed "Tear Down" section — no
 top of the report where it is most useful. `item.funcargs` still holds all live fixture
 objects during the call phase so `page.screenshot()` works.
 
-**Trace** — attached by `attach_trace_on_failure` (autouse), which runs after `browser_context`
-teardown has already written `trace.zip` to `trace_path`. This ordering is safe because the
-autouse fixture (no dependencies on browser fixtures) is set up before the explicitly-requested
-fixtures, and therefore tears down after them (pytest LIFO).
+**Trace** — captured by `_capture_trace(item)` called from `pytest_runtest_makereport` during
+the `"call"` phase, immediately after the test body raises. `_capture_trace` resolves the
+`BrowserContext` via `item.funcargs` (checking `browser_context` then
+`unauthenticated_browser_context`), stops the Playwright trace session to a zip file under
+`output/traces/`, and attaches it with `allure.attach()`. This ensures the zip lands in the
+test body in Allure — not in the collapsed "Tear Down" container that fixture teardown
+attachments fall into. A `_trace_stopped` flag is set on the item so the fixture teardown
+skips its own `tracing.stop()` call and avoids a double-stop error.
 
-Both rely on `request.node.rep_call.failed`, which is set by the `pytest_runtest_makereport`
-hook. Without this hook the attribute is absent and both captures silently no-op.
+Both screenshot and trace rely on `rep_call.failed` which is set by `pytest_runtest_makereport`
+itself. Without the hook the attribute is absent and both captures silently no-op.
 
 ### xdist + rerunfailures incompatibility
 
