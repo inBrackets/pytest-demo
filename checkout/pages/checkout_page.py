@@ -1,4 +1,6 @@
 import allure
+from typing import Self
+
 from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
@@ -44,8 +46,9 @@ class CheckoutPage(BasePage):
         return self._billing_address_lines.all_inner_texts()
 
     @allure.step("Enter order comment")
-    def add_comment(self, comment: str) -> None:
+    def add_comment(self, comment: str) -> Self:
         self._order_comment.fill(comment)
+        return self
 
     @allure.step("Click Place Order")
     def place_order(self) -> None:

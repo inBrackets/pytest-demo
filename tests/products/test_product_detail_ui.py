@@ -29,10 +29,12 @@ class TestProductDetailPage:
         product_detail_page.navigate_to(product_id=1)
         assert "Brand" in product_detail_page.get_brand()
 
-    def test_products_listing_has_view_product_links(self, product_page: ProductPage) -> None:
+    def test_view_product_link_navigates_to_detail(
+        self, product_page: ProductPage, product_detail_page: ProductDetailPage
+    ) -> None:
         product_page.navigate()
-        names = product_page.get_product_names()
-        assert len(names) > 0
+        product_page.click_view_product(index=0)
+        product_detail_page.is_loaded()
 
 
 @pytest.mark.ui

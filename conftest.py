@@ -39,11 +39,11 @@ def pytest_runtest_makereport(
     setattr(item, f"rep_{rep.when}", rep)
     if rep.when == "call" and rep.failed:
         if isinstance(item, pytest.Function):
-            _candidate = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
-            if isinstance(_candidate, Page):
+            pw_page = item.funcargs.get("page") or item.funcargs.get("unauthenticated_page")
+            if isinstance(pw_page, Page):
                 try:
                     allure.attach(
-                        _candidate.screenshot(),
+                        pw_page.screenshot(),
                         name="screenshot",
                         attachment_type=allure.attachment_type.PNG,
                     )

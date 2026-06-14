@@ -1,4 +1,6 @@
 import allure
+from typing import Self
+
 from playwright.sync_api import Locator, expect
 
 from core.base_page import BasePage
@@ -55,12 +57,13 @@ class PaymentPage(BasePage):
         cvc: str = "123",
         exp_month: str = "01",
         exp_year: str = "2027",
-    ) -> None:
+    ) -> Self:
         self._name_on_card.fill(name_on_card)
         self._card_number.fill(card_number)
         self._cvc.fill(cvc)
         self._expiry_month.fill(exp_month)
         self._expiry_year.fill(exp_year)
+        return self
 
     @allure.step("Confirm payment")
     def confirm_payment(self) -> None:
