@@ -1,0 +1,2 @@
+2026-06-14 10:11:49 DEBUG    ae_products.api.ae_products_client: PUT https://automationexercise.com/api/brandsList
+2026-06-14 10:11:49 DEBUG    ae_products.api.ae_products_client: ← 403
