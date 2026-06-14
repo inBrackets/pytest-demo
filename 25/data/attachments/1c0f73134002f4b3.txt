@@ -1,0 +1,4 @@
+2026-06-14 16:44:27 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 16:44:30 DEBUG    users.pages.login_page: Logging in as pytest_c620bc6c@test.com
+2026-06-14 16:44:34 INFO     core.state_validators: Confirmed: user is logged in (logout link visible)
+2026-06-14 16:44:35 INFO     core.state_validators: Confirmed: user is logged out (login link visible)

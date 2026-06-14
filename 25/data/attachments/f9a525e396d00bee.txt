@@ -1,0 +1,2 @@
+2026-06-14 16:44:40 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 16:44:44 DEBUG    users.pages.login_page: Starting signup for pytest_c620bc6c@test.com

@@ -1,0 +1,4 @@
+2026-06-14 16:41:36 DEBUG    products.pages.product_page: Navigating to https://automationexercise.com/products
+2026-06-14 16:41:40 DEBUG    products.pages.product_page: Searching for Blue Top
+2026-06-14 16:41:41 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 16:41:44 DEBUG    users.pages.login_page: Logging in as pytest_c620bc6c@test.com
