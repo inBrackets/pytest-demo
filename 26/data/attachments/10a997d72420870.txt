@@ -1,0 +1,3 @@
+2026-06-14 18:51:37 DEBUG    users.api.user_client: GET https://jsonplaceholder.typicode.com/users/9999
+2026-06-14 18:51:37 DEBUG    users.api.user_client: ← 404 GET https://jsonplaceholder.typicode.com/users/9999
+2026-06-14 18:51:37 ERROR    users.api.user_client: API 404 for GET https://jsonplaceholder.typicode.com/users/9999

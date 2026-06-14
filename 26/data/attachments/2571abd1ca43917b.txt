@@ -1,0 +1,5 @@
+2026-06-14 18:45:14 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-14 18:45:14 DEBUG    ae_account.api.ae_account_client: ← 503
+2026-06-14 18:45:14 ERROR    ae_account.api.ae_account_client: API 503 https://automationexercise.com/api/createAccount
+2026-06-14 18:45:14 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-14 18:45:19 DEBUG    ae_account.api.ae_account_client: ← 200

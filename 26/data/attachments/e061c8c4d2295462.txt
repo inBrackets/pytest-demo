@@ -1,0 +1,9 @@
+2026-06-14 18:46:23 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-14 18:46:23 DEBUG    ae_account.api.ae_account_client: ← 200
+2026-06-14 18:46:23 DEBUG    filelock: Attempting to acquire lock 139903344324736 on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-14 18:46:23 DEBUG    filelock: Lock 139903344324736 acquired on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-14 18:46:23 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-14 18:46:27 DEBUG    users.pages.login_page: Logging in as pytest_5bfc8878@test.com
+2026-06-14 18:46:31 DEBUG    filelock: Attempting to release lock 139903344324736 on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-14 18:46:31 DEBUG    filelock: Lock 139903344324736 released on /tmp/pytest-of-runner/pytest-0/storage_state.json.lock
+2026-06-14 18:46:31 DEBUG    products.pages.product_page: Navigating to https://automationexercise.com/products

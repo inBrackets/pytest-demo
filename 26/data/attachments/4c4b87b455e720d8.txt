@@ -1,0 +1,2 @@
+2026-06-14 18:46:01 DEBUG    ae_account.api.ae_account_client: GET https://automationexercise.com/api/getUserDetailByEmail
+2026-06-14 18:46:05 DEBUG    ae_account.api.ae_account_client: ← 200

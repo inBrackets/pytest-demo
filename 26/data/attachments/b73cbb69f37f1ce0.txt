@@ -1,0 +1,2 @@
+2026-06-14 18:44:52 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/verifyLogin
+2026-06-14 18:44:56 DEBUG    ae_account.api.ae_account_client: ← 200
