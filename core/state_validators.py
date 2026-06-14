@@ -46,11 +46,7 @@ class StateValidator:
 
     @staticmethod
     def assert_resource_exists(get_fn: Callable[[], Any]) -> None:
-        """Assert that calling get_fn() returns a non-None result without raising.
-
-        Usage:
-            StateValidator.assert_resource_exists(lambda: client.get(resource_id=id))
-        """
+        # Calls get_fn(); asserts it returns non-None without raising.
         with allure.step("Assert resource exists"):
             result = get_fn()
             assert result is not None
@@ -58,11 +54,7 @@ class StateValidator:
 
     @staticmethod
     def assert_resource_deleted(get_fn: Callable[[], Any]) -> None:
-        """Assert that calling get_fn() raises ApiError with status 404.
-
-        Usage:
-            StateValidator.assert_resource_deleted(lambda: client.get(resource_id=id))
-        """
+        # Calls get_fn(); asserts it raises ApiError(404).
         with allure.step("Assert resource is deleted (expects 404)"):
             with pytest.raises(ApiError) as exc_info:
                 get_fn()

@@ -16,23 +16,6 @@ from users.pages.signup_page import SignupPage
 class TestRegisterUser:
     """TC 1 — Register User"""
 
-    def test_new_user_can_register(
-        self,
-        unauthenticated_page: Page,
-        settings: Settings,
-        disposable_credentials: dict[str, str],
-    ) -> None:
-        login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
-        login_page.start_signup(
-            name=disposable_credentials["name"],
-            email=disposable_credentials["email"],
-        )
-        signup = SignupPage(page=unauthenticated_page, settings=settings)
-        signup.is_loaded()
-        signup.fill_account_info(password=disposable_credentials["password"])
-        signup.fill_address()
-        signup.create_account()
-
     def test_account_created_page_shows_success(
         self,
         unauthenticated_page: Page,

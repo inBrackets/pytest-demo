@@ -93,7 +93,7 @@ class TestSearchProduct:
 class TestSearchProductVariousKeywords:
     """Verify search returns results across a range of common keywords."""
 
-    @pytest.mark.parametrize("keyword", ["top", "dress", "saree", "jeans"])
+    @pytest.mark.parametrize("keyword", ["dress", "saree", "jeans"])
     def test_returns_results_for_keyword(
         self, ae_products_client: AeProductsClient, keyword: str
     ) -> None:

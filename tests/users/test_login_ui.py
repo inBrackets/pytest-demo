@@ -36,19 +36,12 @@ class TestLoginPage:
 class TestLoginWithInvalidCredentials:
     """TC 3 — Login User with Incorrect Email and Password"""
 
-    def test_wrong_credentials_show_error(
+    def test_wrong_credentials_show_error_and_stay_on_login(
         self, unauthenticated_page: Page, settings: Settings
     ) -> None:
         login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
         login_page.login(username="wrong@example.com", password="wrongpassword")
-        error = login_page.get_error_message()
-        assert "incorrect" in error.lower()
-
-    def test_page_stays_at_login_url(
-        self, unauthenticated_page: Page, settings: Settings
-    ) -> None:
-        login_page = LoginPage(page=unauthenticated_page, settings=settings).navigate()
-        login_page.login(username="wrong@example.com", password="wrongpassword")
+        assert "incorrect" in login_page.get_error_message().lower()
         StateValidator.assert_url_contains(unauthenticated_page, "/login")
 
 

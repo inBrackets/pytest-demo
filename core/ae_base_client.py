@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from playwright.sync_api import APIRequestContext, APIResponse
 
-from core.base_api_client import _raise_for_http_error
+from core.base_api_client import _raise_api_error
 from core.config import Settings
 
 
@@ -21,7 +21,7 @@ class AeBaseClient(ABC):
     def _raise_for_status(self, response: APIResponse, url: str) -> None:
         self._logger.debug("← %d", response.status)
         if not response.ok:
-            _raise_for_http_error(response, url)
+            _raise_api_error(self._logger, response, url)
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self._base_url}{path}"

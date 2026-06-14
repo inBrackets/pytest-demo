@@ -13,6 +13,22 @@ from models.base_model import AppBaseModel
 T = TypeVar("T", bound=BaseModel)
 
 
+def _raise_api_error(
+    logger: logging.Logger,
+    response: APIResponse,
+    url: str,
+    method: str | None = None,
+) -> None:
+    body = response.text()
+    if method:
+        logger.error("API %d for %s %s", response.status, method, url)
+        allure.attach(f"{method} {url}", name="request-context", attachment_type=allure.attachment_type.TEXT)
+    else:
+        logger.error("API %d %s", response.status, url)
+    allure.attach(body, name=f"error-response-{response.status}", attachment_type=allure.attachment_type.TEXT)
+    raise ApiError(response.status, url, body)
+
+
 class BaseApiClient(ABC, Generic[T]):
     _response_model: type[T]
 
@@ -32,19 +48,7 @@ class BaseApiClient(ABC, Generic[T]):
     def _raise_for_status(self, response: APIResponse, url: str, method: str) -> None:
         self._logger.debug("← %d %s %s", response.status, method, url)
         if not response.ok:
-            body = response.text()
-            self._logger.error("API %d for %s %s", response.status, method, url)
-            allure.attach(
-                f"{method} {url}",
-                name="request-context",
-                attachment_type=allure.attachment_type.TEXT,
-            )
-            allure.attach(
-                body,
-                name=f"error-response-{response.status}",
-                attachment_type=allure.attachment_type.TEXT,
-            )
-            raise ApiError(response.status, url, body)
+            _raise_api_error(self._logger, response, url, method)
 
     def _validated(self, data: Any) -> T:
         try:
