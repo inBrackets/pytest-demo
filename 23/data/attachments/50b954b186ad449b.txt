@@ -1,0 +1,487 @@
+2026-06-14 14:43:16 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-14 14:43:26 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-14 14:43:35 WARNING  conftest: Account deletion failed for pytest_cd2bc40d@test.com: APIRequestContext.delete: Max redirect count exceeded
+Call log:
+  - → DELETE https://automationexercise.com/api/deleteAccount
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:26 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=FeniORDj5zFW4UJA4Y9eal8E%2Bpg%2F75S9SHE0RoTUUmXwv9qY6WZmUMx5BtFfbHivoiyM4sH4pGu9B3SoeaF5vtdzrvTqH62iJIz6csdbimv0dkSfQxpoB2dOTUgkG0ewEB18Nm4bICh4"}]}
+    - cf-ray: a0ba1b79aeebda52-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:26 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=yOylAo5%2FtOpA1S%2FStpRkencBUUv9ty5DUVMnQgcmSniPWrHNKcz8%2Fe7MJGJf8X5oICuugP7njGIjxpDP86i5mSYPnzRIxgtm2yfjImI23bEHZ4qmZ0YAax6y6xh%2FFjii8yCDzzMQ67bo"}]}
+    - cf-ray: a0ba1b7d1a65d6eb-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:27 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=5qO7KJZkGHS0vbin9XsRASJG76P%2BZw7KryXjgH3fUYS9QiMEmCh46JqeXwJNZOTJBiGSAHlT8GU3Il7BU3Zhw4E5DVtSDW1fgiAaIY8jPr0jTfMwQDadRB1ZCTp8ZAgUCtuIYkMWtxRz"}]}
+    - cf-ray: a0ba1b7f7ba11785-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:28 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Rv5b8xxNARsba3X4KmSGFzYjJEhYAeMEUq4PnG7bq3A6H%2BhRR6v%2BuaSEITxRJciL%2BbBCeQhzJwvS%2BUvJou3RxA4qG4Qwtz%2B7EQdZdP0ZoMJDP0M%2BwzAIaXXrE%2BvLXCguzrEGcYsiPrSq"}]}
+    - cf-ray: a0ba1b831a527fb8-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:28 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=dJJdErE1EywdxVMiXcBfl7JC78gHZqlE%2Fkv6aDzI%2BiZUBmgGkaf%2F4kU%2FYjoKQ2vbtIaPgmX7DSeb0YjhvjMDckh%2Fpg%2BusCOBLtONYDUxL2wggg7KxEpF9nIw6H4Xpq1G6wZOd5MvceOI"}]}
+    - cf-ray: a0ba1b868ca8f3c4-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:28 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=NqicOOg8Ga316GBtiEgY%2FMFNAuZP%2F3uve3YDIx%2BYgXepeqBHfSaFb1JmhVjl2ZaSL5b0nEf5OnsJKvmJXnyj6gViBbhVDFXCuBs4VGUZ4rdfVasfFPyLnP90BToV5RQJOzNW3IKjgH0R"}]}
+    - cf-ray: a0ba1b88ec0aef5e-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:29 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=DV8xWjWTIicBsVY%2BeyS8b3lUhZvLohy1IcGTMjPs28UIqXfwwkmJzl1E8WISZkmTB5wc8D5Ao%2FpQjrNeXEiSTxko1I4r%2BYqENC277bwWgoWms3GNJlCy73TNjrzwUvty%2BvJE60rOy5el"}]}
+    - cf-ray: a0ba1b8b58dad6fb-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:29 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=acZQZDFBkDZe4Gfwsm%2B0ixid4QkRARdmk07h6cU8edo%2B0eMfWw8LU7dTlSgTv1a4BB4KKp2f7ygc6RLV6qDOssFI8hz%2BupzSOfJHGcNYdBI086It4T6hPGzKOQ39e7j6J3YJsBLQ%2FZsb"}]}
+    - cf-ray: a0ba1b8db9e53b8c-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:30 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Js9aCQcH0FYtgjj%2BTcRbtF8nSZUVLmd408NLKbRyd7zUEYVxl8KOarxk6vVL0qk8pu5RpKnUKUaKha%2FcdouxPkiNBpAkWIUlJGS7rsxaks2SQR2nXCYiWZUJp%2B9ImGEaupZsp4OUYYQj"}]}
+    - cf-ray: a0ba1b901b6d082b-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:30 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=bSheh9%2BNQX8v4LJuvnXEOFpN%2BR9kwrXE7QDkpVOdqC1ynr705pLi01CrtSftTfHetjRHKnyjr1kp8SmQcEIai7ifCTcKsIsifLeOIsWX1gjbvR%2FkeD3lwdR80aWwt70A2%2BP0B0XsYd%2Ft"}]}
+    - cf-ray: a0ba1b93ae0fc9b7-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:31 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=PwRsq%2FhElwEJ%2BwUJxEj4C88U8c1VqSubCxLPGGj886vfo%2Bq1ekNDnre1AegV%2FqkmwlGXdKPa86gI%2BC26uX7yNI04nwKn%2B8r93tLk0MiUmCcHxMH%2F%2B5yjo1nbFwGVB%2FuNas%2Fd0lh%2FpxcJ"}]}
+    - cf-ray: a0ba1b973d1a8907-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:31 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=CakauWqrjaJNKpaadVrqeprf69yxa4B1Foab1r16mcD95HXJK2TGHzGuyrRcJQ2nYIKQ79bzhJtiPDseUc3j28wExl%2BjSgW5CsuKbCAJJ1mL%2BqJS7kE8lB%2F4dB3v39j5ihHsIGr0UoQX"}]}
+    - cf-ray: a0ba1b9abcb3b1e2-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:32 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=cp6gGXLk9aTRbIEv9bKPGaJOkFLyeXZIM1%2F6Y3UWV4Zq0NVEsQGR8%2BtDpGld20ay1fVFVzs%2FWWEd%2FCtTCTtxQ6GrQ2vPy6akpL0hNvkAbGGJxnj89hY%2BLiACObToG%2Bsm1gGgMKiETIQ1"}]}
+    - cf-ray: a0ba1b9e2a6ac07e-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:32 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=vRDHnrdXXwTxw0mJLbEGzUHPEj4ZJV8gesWCe6imR%2BspSwz4Weg6ayL8XtfsTy8CegypCY8a4kXlwLCJqWcusIVV3SUId4iGxWdWf0JCJcE3ZzEhK3OgRvgVjiYUad3T%2BheDwszqLyMp"}]}
+    - cf-ray: a0ba1ba09c05d6b9-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:33 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Djh1o%2Bvrp2z3hhPYI%2FPcGBLSKQDVoPa%2BEDzBC5xed7ZkxalQF08g0GqAv5M9W1bDu0%2F%2FMnOpgqlZKM8xVwPBumNmnWxgQ8JQPFhuqBYYhfMsKoihtuftuWu17VhG5o%2BXbvMrOpuPXNDD"}]}
+    - cf-ray: a0ba1ba2fe8b5187-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:33 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Ixm%2FB9F94%2B8%2FjacBZCsV0O%2FkuBlk55tRwn1qjf0AMosjsrN5uVyxYnlmsqkSs12c4DPetEugYzAB2pRrWafF7P5JKphrTdUWDDtMpfIRdo%2FdPTx8Y34AQzR%2BZ3zU5Lq5%2BHKCuVXWFrNK"}]}
+    - cf-ray: a0ba1ba68e0fd6eb-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:33 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=neql6%2F1I%2FNfG2xW72k7cfsl8pGRSXNh3wV7538OoNSDd6mfmQS8%2F2L9EMLktuyRp5dnQc0%2BXh0IKnogpZoWU01OYtxGG9F8Akhm6Nrw9lohrFnKyKVC5rSfQkLq62Dx6xSvAYFyxtoRo"}]}
+    - cf-ray: a0ba1ba8fa92b967-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:34 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=UQtpfdjotztXQ9QS8dAlUzYOwuXumHYheeS9crsDpMYwR15IA79Vsu9bWYDLVA18VOX9U%2BFm034WyBVfhtUtmJMNN02nN3S%2FMno6jJ8NfR9V0j4cGe4Z5UQj4TgXd3Hr9Ys2V3QIiJaM"}]}
+    - cf-ray: a0ba1bab5bd8f3c4-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:34 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=ayKNuhwhZSfM%2F1U3m08MrcU2nMHsuH%2FTEd%2BLcZ9eTjqWsKtOsHS7R7Cavi2wSK2CW0q%2BD2Nx7XCzmYsKXvuy9eI70aO0nfWEOThYEdahZpAHk68J%2BT1DnKdRKXbsjHpebQHPZBI53do7"}]}
+    - cf-ray: a0ba1badb8011785-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:35 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=MiPBHUrJEDCizu9Bt7zWKMTuIZdcFXATlGgsmJbp5iuG6V9dnF6M5bFZ0cogXU%2FfwmMoX9pbOY1yOnIpZHDTf3SvIzCu7XZxJCOexurvylayC8y8LGjOmFnhZHtc2elBaRfdJxBHcKrs"}]}
+    - cf-ray: a0ba1bb12b6def5e-IAD
+    - alt-svc: h3=":443"; ma=86400
+  - → DELETE https://automationexercise.com/
+    - user-agent: Playwright/1.60.0 (x64; ubuntu 24.04) python/3.12 CI/1
+    - accept: */*
+    - accept-encoding: gzip,deflate,br
+    - content-type: application/x-www-form-urlencoded
+    - content-length: 53
+  - ← 302 Found
+    - date: Sun, 14 Jun 2026 14:43:35 GMT
+    - content-type: text/html; charset=utf-8
+    - transfer-encoding: chunked
+    - connection: keep-alive
+    - referrer-policy: same-origin
+    - x-frame-options: DENY
+    - x-content-type-options: nosniff
+    - x-powered-by: Phusion Passenger(R) 6.1.2
+    - location: /
+    - status: 302 Found
+    - server: cloudflare
+    - cf-cache-status: DYNAMIC
+    - nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+    - report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=P2RtERjnMaIWCku0HVb9tVb4PPeSgjzrgbi%2B2H1li0dO34loYG0wA0EHSOAuS0AbGRLGJexFXayoYIM1ErwHXrsoJpTk5UOY8Jmgvo%2F%2Bi4v5fSBvqn2DL9aF7iO%2BUh4EQYi%2Fbbt41ol%2F"}]}
+    - cf-ray: a0ba1bb38aace5ed-IAD
+    - alt-svc: h3=":443"; ma=86400
