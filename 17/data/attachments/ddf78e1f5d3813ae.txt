@@ -1,0 +1,4 @@
+2026-06-14 08:39:30 DEBUG    users.api.user_client: DELETE https://jsonplaceholder.typicode.com/users/1
+2026-06-14 08:39:30 DEBUG    users.api.user_client: ← 200
+2026-06-14 08:39:30 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-14 08:39:30 DEBUG    ae_account.api.ae_account_client: ← 200
