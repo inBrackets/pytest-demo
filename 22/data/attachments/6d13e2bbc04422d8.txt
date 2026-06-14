@@ -1,0 +1,2 @@
+2026-06-14 13:56:21 DEBUG    users.api.user_client: GET https://jsonplaceholder.typicode.com/users/3
+2026-06-14 13:56:21 DEBUG    users.api.user_client: ← 200
