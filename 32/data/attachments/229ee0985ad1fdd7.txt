@@ -1,0 +1,7 @@
+2026-06-15 05:48:13 DEBUG    asyncio: Using selector: EpollSelector
+2026-06-15 05:48:13 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-15 05:48:16 DEBUG    ae_account.api.ae_account_client: ← 200
+2026-06-15 05:48:16 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/verifyLogin
+2026-06-15 05:48:18 DEBUG    ae_account.api.ae_account_client: ← 200
+2026-06-15 05:48:18 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-15 05:48:20 DEBUG    ae_account.api.ae_account_client: ← 200

@@ -1,0 +1,8 @@
+2026-06-15 05:49:46 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-15 05:49:46 DEBUG    ae_account.api.ae_account_client: ← 503
+2026-06-15 05:49:46 ERROR    ae_account.api.ae_account_client: API 503 https://automationexercise.com/api/createAccount
+2026-06-15 05:49:47 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-15 05:49:47 DEBUG    ae_account.api.ae_account_client: ← 503
+2026-06-15 05:49:47 ERROR    ae_account.api.ae_account_client: API 503 https://automationexercise.com/api/deleteAccount
+2026-06-15 05:49:47 WARNING  conftest: Account deletion failed for pytest_43b865cc@test.com: HTTP 503 — https://automationexercise.com/api/deleteAccount
+<h2>This website is under heavy load (queue full)</h2><p>We're sorry, too many people are accessing this website at the same time. We're working on this problem. Please try again later.</p>

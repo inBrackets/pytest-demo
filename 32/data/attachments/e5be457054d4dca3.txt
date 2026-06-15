@@ -1,0 +1,3 @@
+2026-06-15 05:49:30 DEBUG    ae_products.api.ae_products_client: GET https://automationexercise.com/api/brandsList
+2026-06-15 05:49:30 DEBUG    ae_products.api.ae_products_client: ← 503
+2026-06-15 05:49:30 ERROR    ae_products.api.ae_products_client: API 503 https://automationexercise.com/api/brandsList

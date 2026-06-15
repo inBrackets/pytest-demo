@@ -1,0 +1,3 @@
+2026-06-15 05:51:26 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-15 05:51:28 DEBUG    users.pages.login_page: Logging in as wrong@example.com
+2026-06-15 05:51:29 INFO     core.state_validators: Confirmed: URL contains '/login'

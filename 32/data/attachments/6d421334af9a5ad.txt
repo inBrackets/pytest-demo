@@ -1,0 +1,2 @@
+2026-06-15 05:51:25 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-15 05:51:26 INFO     core.state_validators: Confirmed: URL contains '/login'
