@@ -1,0 +1,5 @@
+2026-06-15 03:40:24 DEBUG    users.pages.login_page: Navigating to https://automationexercise.com/login
+2026-06-15 03:40:24 DEBUG    users.pages.login_page: Starting signup for pytest_23e81b8f@test.com
+2026-06-15 03:40:25 INFO     core.state_validators: Confirmed: URL contains 'account_created'
+2026-06-15 03:40:25 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-15 03:40:26 DEBUG    ae_account.api.ae_account_client: ← 200
