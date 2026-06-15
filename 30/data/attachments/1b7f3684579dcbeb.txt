@@ -1,0 +1,2 @@
+2026-06-15 03:40:54 DEBUG    posts.api.post_client: PUT https://jsonplaceholder.typicode.com/posts/1
+2026-06-15 03:40:54 DEBUG    posts.api.post_client: ← 200 PUT https://jsonplaceholder.typicode.com/posts/1
