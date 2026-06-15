@@ -1,0 +1,3 @@
+2026-06-15 05:19:40 DEBUG    ae_products.api.ae_products_client: PUT https://automationexercise.com/api/brandsList
+2026-06-15 05:19:40 DEBUG    ae_products.api.ae_products_client: ← 403
+2026-06-15 05:19:40 ERROR    ae_products.api.ae_products_client: API 403 https://automationexercise.com/api/brandsList

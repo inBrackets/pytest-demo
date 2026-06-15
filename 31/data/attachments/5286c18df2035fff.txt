@@ -1,0 +1,16 @@
+2026-06-15 05:19:38 DEBUG    ae_account.api.ae_account_client: POST https://automationexercise.com/api/createAccount
+2026-06-15 05:19:38 DEBUG    ae_account.api.ae_account_client: ← 403
+2026-06-15 05:19:38 ERROR    ae_account.api.ae_account_client: API 403 https://automationexercise.com/api/createAccount
+2026-06-15 05:19:38 DEBUG    ae_account.api.ae_account_client: DELETE https://automationexercise.com/api/deleteAccount
+2026-06-15 05:19:38 DEBUG    ae_account.api.ae_account_client: ← 403
+2026-06-15 05:19:38 ERROR    ae_account.api.ae_account_client: API 403 https://automationexercise.com/api/deleteAccount
+2026-06-15 05:19:38 WARNING  conftest: Account deletion failed for pytest_1ed6ad2c@test.com: HTTP 403 — https://automationexercise.com/api/deleteAccount
+
+
+
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="Pragma" cont…
