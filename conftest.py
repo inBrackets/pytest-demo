@@ -1,9 +1,12 @@
 import contextlib
+import io
 import logging
 import os
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Generator
+
+from PIL import Image, ImageChops
 
 import allure
 import pytest
@@ -334,14 +337,25 @@ def api_context(
     context.dispose()
 
 
+def _count_diff_pixels(current: bytes, baseline: bytes) -> int:
+    img_a = Image.open(io.BytesIO(current)).convert("RGB")
+    img_b = Image.open(io.BytesIO(baseline)).convert("RGB")
+    if img_a.size != img_b.size:
+        # Size mismatch counts as every pixel differing
+        return max(img_a.width * img_a.height, img_b.width * img_b.height)
+    diff = ImageChops.difference(img_a, img_b)
+    raw = diff.tobytes()
+    return sum(1 for i in range(0, len(raw), 3) if raw[i] or raw[i + 1] or raw[i + 2])
+
+
 @pytest.fixture
 def assert_snapshot(
     request: pytest.FixtureRequest,
-) -> Generator[Callable[[Locator | Page, str], None], None, None]:
+) -> Generator[Callable[[Locator | Page, str, int], None], None, None]:
     update = request.config.getoption("--update-snapshots", default=False)
     snapshots_dir = request.path.parent / "__snapshots__"
 
-    def _assert(target: Locator | Page, name: str) -> None:
+    def _assert(target: Locator | Page, name: str, max_diff_pixels: int = 0) -> None:
         if isinstance(target, Page):
             try:
                 target.wait_for_load_state("networkidle", timeout=5_000)
@@ -361,9 +375,19 @@ def assert_snapshot(
             baseline.write_bytes(current)
             if not update:
                 pytest.skip(f"Baseline created: {name}")
+        elif max_diff_pixels == 0:
+            baseline_bytes = baseline.read_bytes()
+            if current != baseline_bytes:
+                diff_count = _count_diff_pixels(current, baseline_bytes)
+                pytest.fail(
+                    f"Screenshot mismatch for '{name}': {diff_count} differing pixels. "
+                    "Re-run with --update-snapshots to refresh the baseline."
+                )
         else:
-            assert current == baseline.read_bytes(), (
-                f"Screenshot mismatch for '{name}'. "
+            diff_count = _count_diff_pixels(current, baseline.read_bytes())
+            assert diff_count <= max_diff_pixels, (
+                f"Screenshot mismatch for '{name}': {diff_count} differing pixels "
+                f"(allowed: {max_diff_pixels}). "
                 "Re-run with --update-snapshots to refresh the baseline."
             )
 

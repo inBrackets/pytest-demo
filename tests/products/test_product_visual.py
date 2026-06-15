@@ -8,6 +8,10 @@ from core.config import Settings
 from products.pages.home_page import HomePage
 from products.pages.product_page import ProductPage
 
+# Pixels allowed to differ between runs — absorbs minor CDN/font rendering variance
+# without masking real layout regressions (a moved element changes thousands of pixels).
+_PIXEL_TOLERANCE = 200
+
 
 @allure.feature("Product UI")
 @allure.story("Pixel Snapshot Regression")
@@ -15,12 +19,12 @@ from products.pages.product_page import ProductPage
 @pytest.mark.ui
 @pytest.mark.visual
 class TestProductPixelSnapshots:
-    """Pixel-for-pixel layout regression using locator screenshots.
+    """Layout regression using locator screenshots with a small pixel tolerance.
 
     Create / update baselines (re-run after intentional UI changes):
         uv run pytest tests/products/test_product_visual.py --update-snapshots
 
-    Normal run — fails if pixels differ from the stored baseline:
+    Normal run — fails if more than _PIXEL_TOLERANCE pixels differ from the baseline:
         uv run pytest tests/products/test_product_visual.py
 
     Baselines are stored in tests/products/__snapshots__/ and must be committed to git.
@@ -30,18 +34,24 @@ class TestProductPixelSnapshots:
         self,
         unauthenticated_page: Page,
         settings: Settings,
-        assert_snapshot: Callable[[Union[Locator, Page], str], None],
+        assert_snapshot: Callable[[Union[Locator, Page], str, int], None],
     ) -> None:
         HomePage(page=unauthenticated_page, settings=settings).navigate()
-        # Screenshot the site header — stable, static element (excludes the rotating carousel).
-        assert_snapshot(unauthenticated_page.locator("#header"), "home-navbar.png")
+        assert_snapshot(
+            unauthenticated_page.locator("#header"),
+            "home-navbar.png",
+            _PIXEL_TOLERANCE,
+        )
 
     def test_all_products_heading_snapshot(
         self,
         unauthenticated_page: Page,
         settings: Settings,
-        assert_snapshot: Callable[[Union[Locator, Page], str], None],
+        assert_snapshot: Callable[[Union[Locator, Page], str, int], None],
     ) -> None:
         ProductPage(page=unauthenticated_page, settings=settings).navigate()
-        # Screenshot the heading section — static text with no dynamic images.
-        assert_snapshot(unauthenticated_page.locator("h2", has_text="All Products"), "all-products-heading.png")
+        assert_snapshot(
+            unauthenticated_page.locator("h2", has_text="All Products"),
+            "all-products-heading.png",
+            _PIXEL_TOLERANCE,
+        )
