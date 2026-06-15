@@ -1,0 +1,7 @@
+2026-06-15 06:26:04 DEBUG    products.pages.home_page: Navigating to https://automationexercise.com
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IHDR' 16 13
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IDAT' 41 4096
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IDAT' 15839 6
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IHDR' 16 13
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IDAT' 41 4096
+2026-06-15 06:26:06 DEBUG    PIL.PngImagePlugin: STREAM b'IDAT' 12696 6
