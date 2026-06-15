@@ -65,6 +65,7 @@ class LoginPage(BasePage):
         self._logger.debug("Starting signup for %s", email)
         self._signup_name.fill(name)
         self._signup_email.fill(email)
+        self._dismiss_consent_banner()
         self._signup_button.click()
 
     @allure.step("Get signup error message")

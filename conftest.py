@@ -7,7 +7,7 @@ from typing import Any, Callable, Generator
 
 import allure
 import pytest
-from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Locator, Page, Playwright
+from playwright.sync_api import APIRequestContext, Browser, BrowserContext, Locator, Page, Playwright, TimeoutError as PlaywrightTimeoutError, expect
 
 from ae_account.api.ae_account_client import AeAccountClient
 from ae_account.models.ae_account_model import AeCreateAccountRequest
@@ -161,11 +161,20 @@ def settings() -> Settings:
     return Settings()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _configure_playwright_timeouts(settings: Settings) -> None:
+    expect.set_options(timeout=settings.browser_timeout)
+
+
 @pytest.fixture(scope="session")
 def browser_type_launch_args(
     browser_type_launch_args: dict[str, Any], settings: Settings
 ) -> dict[str, Any]:
-    return {**browser_type_launch_args, "headless": settings.browser_headless}
+    return {
+        **browser_type_launch_args,
+        "headless": settings.browser_headless,
+        "args": ["--disable-lcd-text", "--disable-font-subpixel-positioning"],
+    }
 
 
 @pytest.fixture(scope="session")
@@ -215,8 +224,10 @@ def auth_state(
     path = tmp_path_factory.getbasetemp() / f"storage_state_{worker_id}.json"
     if not path.exists():
         context = browser.new_context()
+        _setup_context(context, settings)
         try:
             pw_page = context.new_page()
+            pw_page.set_default_timeout(settings.browser_timeout)
             LoginPage(pw_page, settings).navigate().login(
                 username=live_account["email"],
                 password=live_account["password"],
@@ -232,6 +243,20 @@ def auth_state(
     return path
 
 
+_CONSENT_DISMISS_SCRIPT = """
+    new MutationObserver(() => {
+        const root = document.querySelector('.fc-consent-root');
+        if (root) root.remove();
+    }).observe(document.documentElement, { childList: true, subtree: true });
+"""
+
+
+def _setup_context(context: BrowserContext, settings: Settings) -> None:
+    context.set_default_timeout(settings.browser_timeout)
+    context.route("**fundingchoicesmessages.google.com**", lambda route: route.abort())
+    context.add_init_script(_CONSENT_DISMISS_SCRIPT)
+
+
 @pytest.fixture
 def browser_context(
     browser: Browser,
@@ -240,7 +265,7 @@ def browser_context(
     request: pytest.FixtureRequest,
 ) -> Generator[BrowserContext, None, None]:
     context = browser.new_context(storage_state=str(auth_state))
-    context.set_default_timeout(settings.browser_timeout)
+    _setup_context(context, settings)
     context.tracing.start(screenshots=True, snapshots=True)
     yield context
     if not getattr(request.node, "_trace_stopped", False):
@@ -249,8 +274,9 @@ def browser_context(
 
 
 @pytest.fixture
-def page(browser_context: BrowserContext) -> Generator[Page, None, None]:
+def page(browser_context: BrowserContext, settings: Settings) -> Generator[Page, None, None]:
     pw_page = browser_context.new_page()
+    pw_page.set_default_timeout(settings.browser_timeout)
     yield pw_page
     pw_page.close()
 
@@ -262,7 +288,7 @@ def unauthenticated_browser_context(
     request: pytest.FixtureRequest,
 ) -> Generator[BrowserContext, None, None]:
     context = browser.new_context()
-    context.set_default_timeout(settings.browser_timeout)
+    _setup_context(context, settings)
     context.tracing.start(screenshots=True, snapshots=True)
     yield context
     if not getattr(request.node, "_trace_stopped", False):
@@ -273,8 +299,10 @@ def unauthenticated_browser_context(
 @pytest.fixture
 def unauthenticated_page(
     unauthenticated_browser_context: BrowserContext,
+    settings: Settings,
 ) -> Generator[Page, None, None]:
     pw_page = unauthenticated_browser_context.new_page()
+    pw_page.set_default_timeout(settings.browser_timeout)
     yield pw_page
     pw_page.close()
 
@@ -315,9 +343,17 @@ def assert_snapshot(
 
     def _assert(target: Locator | Page, name: str) -> None:
         if isinstance(target, Page):
+            try:
+                target.wait_for_load_state("networkidle", timeout=5_000)
+            except PlaywrightTimeoutError:
+                pass
             current = target.screenshot()
         else:
             target.wait_for(state="visible")
+            try:
+                target.page.wait_for_load_state("networkidle", timeout=5_000)
+            except PlaywrightTimeoutError:
+                pass
             current = target.screenshot()
         baseline = snapshots_dir / name
         if update or not baseline.exists():

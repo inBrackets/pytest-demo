@@ -132,6 +132,7 @@ class SignupPage(BasePage):
 
     @allure.step("Submit account creation form")
     def create_account(self) -> None:
+        self._dismiss_consent_banner()
         self._create_account_button.click()
         expect(self._account_created_heading).to_be_visible()
 

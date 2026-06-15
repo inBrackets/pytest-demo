@@ -26,4 +26,9 @@ def registered_page(
         username=disposable_credentials["email"],
         password=disposable_credentials["password"],
     )
+    if "/login" in unauthenticated_page.url:
+        raise RuntimeError(
+            f"Login failed for {disposable_credentials['email']} — "
+            f"still at {unauthenticated_page.url!r}"
+        )
     return unauthenticated_page

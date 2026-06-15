@@ -41,8 +41,11 @@ class BasePage(ABC):
         self._dismiss_consent_banner()
 
     def _dismiss_consent_banner(self) -> None:
+        consent_btn = self._page.locator(".fc-cta-consent")
+        if not consent_btn.is_visible():
+            return
         try:
-            self._page.locator(".fc-cta-consent").first.click(timeout=self._settings.consent_banner_timeout)
+            consent_btn.first.click(timeout=self._settings.consent_banner_timeout)
             self._page.locator(".fc-consent-root").wait_for(state="hidden", timeout=self._settings.consent_banner_timeout)
             self._logger.debug("Dismissed cookie consent banner")
         except PlaywrightTimeoutError:

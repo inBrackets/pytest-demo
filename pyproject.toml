@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-addopts        = "-n 2"
+addopts        = "-n 1"
 testpaths      = ["tests"]
 pythonpath     = ["."]
 log_cli        = true
@@ -39,11 +39,11 @@ dev = [
 ]
 
 # Run profiles (mutually exclusive — xdist and rerunfailures cannot be active together):
-#   default (parallel, 2 workers):  uv run pytest
+#   default (parallel, 1 worker):   uv run pytest
 #   stable (sequential + reruns):   uv run pytest -p no:xdist --reruns 1 --reruns-delay 2
 #
 # Visual regression baselines (create/update before normal run):
-#   uv run pytest tests/products/test_product_visual.py --update-snapshots
+#   uv run ol tests/products/test_product_visual.py --update-snapshots
 #
 # Allure report:
 #   serve (opens browser):  allure serve output/allure-results
